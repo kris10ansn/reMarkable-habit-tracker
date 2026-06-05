@@ -59,6 +59,10 @@ Tail this in another terminal while launching the app. apploader prefixes its ow
 
 Append to `<qresource>` in `application.qrc`, then `make deploy`. The `entry` field stays pointing at the root component.
 
+## Keep README.md current
+
+When functionality changes (new features, removed features, changed UX, new commands), update `README.md` in the same change. The README is the user-facing description of what the app does and how to use it — it must not drift from the actual behavior.
+
 ## Device-side details
 
 - App lives at `/home/root/xovi/exthome/appload/habit-tracker/` after deploy.
