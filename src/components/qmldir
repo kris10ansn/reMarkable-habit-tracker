@@ -1,5 +1,6 @@
 AppButton 1.0 AppButton.qml
 MonthHeader 1.0 MonthHeader.qml
 HabitRow 1.0 HabitRow.qml
+HabitAddRow 1.0 HabitAddRow.qml
 DayLabelsRow 1.0 DayLabelsRow.qml
 HabitGridRow 1.0 HabitGridRow.qml

@@ -2,7 +2,6 @@ import QtQuick 2.15
 import "." as App
 import "components" as App
 import "js/DateUtils.js" as DateUtils
-import "js/habits.js" as Habits
 
 Rectangle {
     id: root
@@ -16,6 +15,8 @@ Rectangle {
 
     Component.onCompleted: console.log("Habit Tracker loaded; size:", width, "x", height)
 
+    App.HabitsStore { id: habitsStore }
+
     Item {
         id: landscape
         anchors.centerIn: parent
@@ -26,6 +27,7 @@ Rectangle {
         property date today: new Date()
         property int daysInMonth: DateUtils.daysInMonth(today)
         property int currentDay: today.getDate()
+        property bool editing: false
 
         property int viewportWidth: width - 2 * App.Theme.margin - App.Theme.habitsWidth - App.Theme.labelGap - 2 * App.Theme.buttonWidth - 2 * App.Theme.buttonGap
         property int contentWidth: daysInMonth * App.Theme.boxSize + (daysInMonth - 1) * App.Theme.boxSpacing
@@ -66,11 +68,18 @@ Rectangle {
                     }
 
                     Repeater {
-                        model: Habits.habits
+                        model: habitsStore.habits
 
                         App.HabitRow {
                             name: modelData
+                            editing: landscape.editing
+                            onRemoveClicked: habitsStore.remove(index)
                         }
+                    }
+
+                    App.HabitAddRow {
+                        visible: landscape.editing
+                        onAddRequested: habitsStore.add(name)
                     }
                 }
 
@@ -108,12 +117,18 @@ Rectangle {
                         }
 
                         Repeater {
-                            model: Habits.habits
+                            model: habitsStore.habits
 
                             App.HabitGridRow {
                                 daysInMonth: landscape.daysInMonth
                                 currentDay: landscape.currentDay
                             }
+                        }
+
+                        Item {
+                            visible: landscape.editing
+                            width: 1
+                            height: App.Theme.boxSize
                         }
                     }
                 }
@@ -139,6 +154,7 @@ Rectangle {
         }
 
         App.AppButton {
+            id: quitButton
             anchors.right: parent.right
             anchors.bottom: parent.bottom
             anchors.margins: App.Theme.margin
@@ -146,6 +162,17 @@ Rectangle {
             height: App.Theme.quitButtonHeight
             text: "Quit"
             onClicked: root.close()
+        }
+
+        App.AppButton {
+            anchors.right: quitButton.left
+            anchors.bottom: parent.bottom
+            anchors.margins: App.Theme.margin
+            anchors.rightMargin: App.Theme.buttonGap
+            width: App.Theme.quitButtonWidth
+            height: App.Theme.quitButtonHeight
+            text: landscape.editing ? "Done" : "Edit"
+            onClicked: landscape.editing = !landscape.editing
         }
     }
 }

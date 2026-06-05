@@ -3,10 +3,12 @@
         <file>src/Main.qml</file>
         <file>src/qmldir</file>
         <file>src/Theme.qml</file>
+        <file>src/HabitsStore.qml</file>
         <file>src/components/qmldir</file>
         <file>src/components/AppButton.qml</file>
         <file>src/components/MonthHeader.qml</file>
         <file>src/components/HabitRow.qml</file>
+        <file>src/components/HabitAddRow.qml</file>
         <file>src/components/DayLabelsRow.qml</file>
         <file>src/components/HabitGridRow.qml</file>
         <file>src/js/DateUtils.js</file>

@@ -29,4 +29,7 @@ QtObject {
 
     property int quitButtonWidth: 160
     property int quitButtonHeight: 60
+
+    property int deleteButtonSize: 60
+    property int inputPadding: 12
 }
