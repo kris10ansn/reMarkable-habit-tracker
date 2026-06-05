@@ -1,6 +1,6 @@
 # rmhello
 
-A pure-QML hello-world app for reMarkable 1, launched via apploader (XOVI `rm-appload`).
+A pure-QML daily-goal-tracker prototype for reMarkable 1, launched via apploader (XOVI `rm-appload`). Renders a landscape grid of goals × days-of-the-month with the current day highlighted. The package name is historical — it started as a hello-world.
 
 ## Layout
 
@@ -30,7 +30,7 @@ make remove     # uninstalls
 make clean      # local cleanup
 ```
 
-On the device, open apploader (hold middle button ~3s) — "Hello World" should appear. Tap to launch; tap "Quit" to close.
+On the device, open apploader (hold middle button ~3s) — the rmhello tile should appear. Tap to launch; tap "Quit" (bottom-right) to close.
 
 ## Debugging
 
