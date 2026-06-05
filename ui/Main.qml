@@ -12,33 +12,90 @@ Rectangle {
 
     Component.onCompleted: console.log("rmhello loaded; size:", width, "x", height)
 
-    Text {
+    Item {
+        id: landscape
         anchors.centerIn: parent
-        text: "Hello world (pure QML)"
-        font.pixelSize: 96
-        color: "black"
-    }
+        width: parent.height
+        height: parent.width
+        rotation: 90
 
-    Rectangle {
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.bottom: parent.bottom
-        anchors.bottomMargin: 120
-        width: 400
-        height: 200
-        color: "black"
-        border.color: "black"
-        border.width: 3
+        property int margin: 40
+        property int goalsWidth: 360
+        property int boxSize: 40
+        property int boxSpacing: 6
+        property int rowSpacing: 24
 
-        Text {
-            anchors.centerIn: parent
-            text: "Quit"
-            font.pixelSize: 56
-            color: "black"
+        ListModel {
+            id: goalsModel
+            ListElement { name: "Read 20 pages" }
+            ListElement { name: "Exercise" }
+            ListElement { name: "Meditate" }
+            ListElement { name: "No screens after 22:00" }
+            ListElement { name: "Journal" }
         }
 
-        MouseArea {
+        Column {
             anchors.fill: parent
-            onClicked: root.close()
+            anchors.margins: landscape.margin
+            spacing: landscape.rowSpacing
+
+            Repeater {
+                model: goalsModel
+
+                Row {
+                    spacing: 20
+                    height: landscape.boxSize
+
+                    Text {
+                        width: landscape.goalsWidth
+                        height: landscape.boxSize
+                        text: model.name
+                        font.pixelSize: 28
+                        color: "black"
+                        verticalAlignment: Text.AlignVCenter
+                        elide: Text.ElideRight
+                    }
+
+                    Row {
+                        spacing: landscape.boxSpacing
+
+                        Repeater {
+                            model: 31
+
+                            Rectangle {
+                                width: landscape.boxSize
+                                height: landscape.boxSize
+                                color: "white"
+                                border.color: "black"
+                                border.width: 2
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        Rectangle {
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            anchors.margins: landscape.margin
+            width: 160
+            height: 60
+            color: "white"
+            border.color: "black"
+            border.width: 3
+
+            Text {
+                anchors.centerIn: parent
+                text: "Quit"
+                font.pixelSize: 28
+                color: "black"
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                onClicked: root.close()
+            }
         }
     }
 }
