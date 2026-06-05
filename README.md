@@ -2,7 +2,7 @@
 
 A small habit tracker for the **reMarkable 1** e-ink tablet. It draws a landscape grid: one row per habit, one column per day of the current month, with today's column highlighted. No syncing, no accounts, no backend — just a QML scene rendered on the device.
 
-This is a prototype: the habit list is hard-coded in `ui/Main.qml` and check-marks aren't persisted yet.
+This is a prototype: the habit list is hard-coded in `src/js/habits.js` and check-marks aren't persisted yet.
 
 ## What it looks like
 
@@ -38,7 +38,7 @@ apploader doesn't read loose `.qml` files at runtime — it expects them package
 | Stock UI    | xochitl (Qt 5.15 process)                                     |
 | Hooking     | XOVI                                                          |
 | App runtime | rm-appload (XOVI extension, QML frontend host)                |
-| This app    | A single `Main.qml`, no JS modules, no backend                |
+| This app    | `Main.qml` + a `Theme` singleton, small components, JS data   |
 | Build       | `rcc-qt5 --binary` → `resources.rcc`                          |
 | Deploy      | `scp` to `/home/root/xovi/exthome/appload/habit-tracker/`     |
 
@@ -46,12 +46,18 @@ apploader doesn't read loose `.qml` files at runtime — it expects them package
 
 ```
 .
-├── application.qrc   # lists files to bundle into the .rcc
-├── ui/Main.qml       # the entire app; root declares signal close + unloading()
-├── manifest.json     # apploader manifest (id, display name, entry path inside the rcc)
-├── icon.png          # launcher icon shown in apploader
-├── Makefile          # build / deploy / remove / clean
-└── build/            # rcc output + deploy staging (gitignored)
+├── application.qrc      # lists files to bundle into the .rcc
+├── src/
+│   ├── Main.qml         # entry; root declares signal close + unloading()
+│   ├── Theme.qml        # singleton with sizes, fonts, colors
+│   ├── qmldir           # registers Theme as a singleton
+│   ├── components/      # reusable QML pieces (AppButton, HabitRow, …)
+│   │   └── qmldir
+│   └── js/              # plain JS modules (habits list, date helpers)
+├── manifest.json        # apploader manifest (id, display name, entry path inside the rcc)
+├── icon.png             # launcher icon shown in apploader
+├── Makefile             # build / deploy / remove / clean
+└── build/               # rcc output + deploy staging (gitignored)
 ```
 
 ## Prerequisites
@@ -81,7 +87,7 @@ On the device, hold the middle button ~3 seconds to open apploader. The "reMarka
 
 ## Customizing the habits
 
-Edit the `goalsModel` `ListModel` near the top of `ui/Main.qml`, then `make deploy`. There's no in-app editor yet.
+Edit the `habits` array in `src/js/habits.js`, then `make deploy`. There's no in-app editor yet.
 
 ## Debugging
 
@@ -101,7 +107,7 @@ These have already cost real debug cycles:
 2. **`entry` in `manifest.json` must start with `/`.** apploader concatenates the entry onto `qrc:/<nonce>` with no separator; without the leading slash you get `qrc:/NONCEMain.qml` and "No such file."
 3. **Root QML conventions.** The root component must declare `signal close` and `function unloading() { ... }`. Emit `close()` from your Quit handler — `Qt.quit()` is a no-op (Qt's process is xochitl, you don't own it).
 4. **No hardcoded root size.** apploader sizes the container; use `anchors.fill: parent` on the root. Hardcoded `width: 1404; height: 1872` is silently ignored.
-5. **The grid is rendered rotated 90°.** The screen is portrait, but the layout reads better landscape — `Main.qml` has a centered `Item { rotation: 90 }` wrapper that swaps `width`/`height` and anchors the layout into it.
+5. **The grid is rendered rotated 90°.** The screen is portrait, but the layout reads better landscape — `src/Main.qml` has a centered `Item { rotation: 90 }` wrapper that swaps `width`/`height` and anchors the layout into it.
 
 ## A note on naming
 

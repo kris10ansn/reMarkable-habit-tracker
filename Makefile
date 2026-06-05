@@ -12,7 +12,7 @@ build:
 	cp manifest.json icon.png $(BUILD_DIR)/
 
 lint:
-	@command -v qmllint-qt5 >/dev/null 2>&1 && qmllint-qt5 ui/*.qml || echo "qmllint-qt5 not installed; skipping"
+	@command -v qmllint-qt5 >/dev/null 2>&1 && qmllint-qt5 src/*.qml src/components/*.qml || echo "qmllint-qt5 not installed; skipping"
 
 deploy: build
 	ssh $(REMARKABLE_HOST) "mkdir -p $(REMOTE_DIR)"

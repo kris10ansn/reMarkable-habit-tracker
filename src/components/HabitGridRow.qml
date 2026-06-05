@@ -1,5 +1,5 @@
 import QtQuick 2.15
-import "." as App
+import ".." as App
 
 Row {
     id: gridRow

@@ -1,6 +1,6 @@
 import QtQuick 2.15
-import "." as App
-import "DateUtils.js" as DateUtils
+import ".." as App
+import "../js/DateUtils.js" as DateUtils
 
 Column {
     id: header

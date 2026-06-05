@@ -1,7 +1,8 @@
 import QtQuick 2.15
 import "." as App
-import "DateUtils.js" as DateUtils
-import "habits.js" as Habits
+import "components" as App
+import "js/DateUtils.js" as DateUtils
+import "js/habits.js" as Habits
 
 Rectangle {
     id: root

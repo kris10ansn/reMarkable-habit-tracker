@@ -67,7 +67,7 @@ When functionality changes (new features, removed features, changed UX, new comm
 
 - App lives at `/home/root/xovi/exthome/appload/habit-tracker/` after deploy.
 - Open apploader on the device by holding the middle button ~3 seconds.
-- The repo lives under `~/src/rust/` but is not a Rust project — naming is historical (prior attempts under `remarkable-app/` and `remarkable-helloworld-2/` were Rust; this is now a single `Main.qml`).
+- The repo lives under `~/src/rust/` but is not a Rust project — naming is historical (prior attempts under `remarkable-app/` and `remarkable-helloworld-2/` were Rust). App code lives under `src/`: `Main.qml` + `Theme.qml` singleton at the top, reusable QML in `src/components/`, plain JS in `src/js/`. Each QML directory has a `qmldir`.
 
 ## Maintaining this file
 
