@@ -1,9 +1,9 @@
 .pragma library
 
 var habits = [
-    "Read 20 pages",
-    "Exercise",
-    "Meditate",
-    "No screens after 22:00",
-    "Journal"
+    { name: "Read 20 pages", negative: false },
+    { name: "Exercise", negative: false },
+    { name: "Meditate", negative: false },
+    { name: "No screens after 22:00", negative: false },
+    { name: "Journal", negative: false }
 ]

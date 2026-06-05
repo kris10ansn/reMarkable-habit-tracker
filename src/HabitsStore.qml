@@ -38,10 +38,10 @@ QtObject {
         }
     }
 
-    function add(name) {
+    function add(name, negative) {
         var trimmed = (name || "").replace(/^\s+|\s+$/g, "");
         if (!trimmed) return;
-        habits = habits.concat([trimmed]);
+        habits = habits.concat([{ name: trimmed, negative: !!negative }]);
         save();
     }
 
@@ -49,6 +49,14 @@ QtObject {
         if (index < 0 || index >= habits.length) return;
         var copy = habits.slice();
         copy.splice(index, 1);
+        habits = copy;
+        save();
+    }
+
+    function setNegative(index, negative) {
+        if (index < 0 || index >= habits.length) return;
+        var copy = habits.slice();
+        copy[index] = { name: copy[index].name, negative: !!negative };
         habits = copy;
         save();
     }
