@@ -1,9 +1,12 @@
 import QtQuick 2.15
+import "." as App
+import "DateUtils.js" as DateUtils
+import "habits.js" as Habits
 
 Rectangle {
     id: root
     anchors.fill: parent
-    color: "white"
+    color: App.Theme.bg
 
     signal close
     function unloading() {
@@ -19,23 +22,12 @@ Rectangle {
         height: parent.width
         rotation: 90
 
-        property int margin: 40
-        property int goalsWidth: 360
-        property int boxSize: 80
-        property int boxSpacing: 12
-        property int rowSpacing: 24
-        property int labelGap: 20
-        property int buttonWidth: 80
-        property int buttonGap: 20
-        property int dayLabelHeight: 32
-
-        property var today: new Date()
-        property int daysInMonth: new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate()
+        property date today: new Date()
+        property int daysInMonth: DateUtils.daysInMonth(today)
         property int currentDay: today.getDate()
-        property string monthName: today.toLocaleString(Qt.locale(), "MMMM yyyy")
 
-        property int viewportWidth: width - 2 * margin - goalsWidth - labelGap - 2 * buttonWidth - 2 * buttonGap
-        property int contentWidth: daysInMonth * boxSize + (daysInMonth - 1) * boxSpacing
+        property int viewportWidth: width - 2 * App.Theme.margin - App.Theme.habitsWidth - App.Theme.labelGap - 2 * App.Theme.buttonWidth - 2 * App.Theme.buttonGap
+        property int contentWidth: daysInMonth * App.Theme.boxSize + (daysInMonth - 1) * App.Theme.boxSpacing
         property int maxScrollX: Math.max(0, contentWidth - viewportWidth)
         property int scrollX: 0
 
@@ -43,197 +35,98 @@ Rectangle {
             return Math.max(0, Math.min(maxScrollX, x))
         }
         function scrollByBoxes(n) {
-            scrollX = clampScroll(scrollX + n * (boxSize + boxSpacing))
+            scrollX = clampScroll(scrollX + n * (App.Theme.boxSize + App.Theme.boxSpacing))
         }
         function scrollToDay(day) {
-            var target = (day - 1) * (boxSize + boxSpacing) - viewportWidth / 2 + boxSize / 2
+            var target = (day - 1) * (App.Theme.boxSize + App.Theme.boxSpacing) - viewportWidth / 2 + App.Theme.boxSize / 2
             scrollX = clampScroll(target)
         }
 
         Component.onCompleted: scrollToDay(currentDay)
 
-        ListModel {
-            id: goalsModel
-            ListElement { name: "Read 20 pages" }
-            ListElement { name: "Exercise" }
-            ListElement { name: "Meditate" }
-            ListElement { name: "No screens after 22:00" }
-            ListElement { name: "Journal" }
-        }
-
         Column {
             anchors.fill: parent
-            anchors.margins: landscape.margin
-            spacing: landscape.rowSpacing
+            anchors.margins: App.Theme.margin
+            spacing: App.Theme.rowSpacing
 
-            Column {
-                spacing: 4
-
-                Text {
-                    text: landscape.monthName
-                    font.pixelSize: 48
-                    font.bold: true
-                    color: "black"
-                }
-
-                Text {
-                    text: landscape.daysInMonth + " days · today is day " + landscape.currentDay
-                    font.pixelSize: 24
-                    color: "black"
-                }
+            App.MonthHeader {
+                date: landscape.today
             }
 
             Row {
-                spacing: landscape.buttonGap
+                spacing: App.Theme.buttonGap
 
                 Column {
-                    spacing: landscape.rowSpacing
+                    spacing: App.Theme.rowSpacing
 
                     Item {
-                        width: landscape.goalsWidth
-                        height: landscape.dayLabelHeight
+                        width: App.Theme.habitsWidth
+                        height: App.Theme.dayLabelHeight
                     }
 
                     Repeater {
-                        model: goalsModel
+                        model: Habits.habits
 
-                        Text {
-                            width: landscape.goalsWidth
-                            height: landscape.boxSize
-                            text: model.name
-                            font.pixelSize: 28
-                            color: "black"
-                            verticalAlignment: Text.AlignVCenter
-                            elide: Text.ElideRight
+                        App.HabitRow {
+                            name: modelData
                         }
                     }
                 }
 
-                Rectangle {
-                    width: landscape.buttonWidth
-                    height: goalsList.height
-                    color: "white"
-                    border.color: "black"
-                    border.width: 3
-                    opacity: landscape.scrollX > 0 ? 1.0 : 0.3
-
-                    Text {
-                        anchors.centerIn: parent
-                        text: "‹"
-                        font.pixelSize: 64
-                        color: "black"
-                    }
-
-                    MouseArea {
-                        anchors.fill: parent
-                        onClicked: landscape.scrollByBoxes(-7)
-                    }
+                App.AppButton {
+                    width: App.Theme.buttonWidth
+                    height: gridStack.height
+                    text: "‹"
+                    fontSize: App.Theme.scrollFont
+                    fadeOpacity: landscape.scrollX > 0 ? 1.0 : App.Theme.fadedOpacity
+                    onClicked: landscape.scrollByBoxes(-7)
                 }
 
                 Item {
                     width: landscape.viewportWidth
-                    height: goalsList.height
+                    height: gridStack.height
                     clip: true
 
                     Column {
-                        id: goalsList
+                        id: gridStack
                         x: -landscape.scrollX
-                        spacing: landscape.rowSpacing
+                        spacing: App.Theme.rowSpacing
 
-                        Row {
-                            spacing: landscape.boxSpacing
-
-                            Repeater {
-                                model: landscape.daysInMonth
-
-                                Text {
-                                    width: landscape.boxSize
-                                    height: landscape.dayLabelHeight
-                                    text: index + 1
-                                    font.pixelSize: 22
-                                    font.bold: index + 1 === landscape.currentDay
-                                    horizontalAlignment: Text.AlignHCenter
-                                    verticalAlignment: Text.AlignVCenter
-                                }
-                            }
+                        App.DayLabelsRow {
+                            daysInMonth: landscape.daysInMonth
+                            currentDay: landscape.currentDay
                         }
 
                         Repeater {
-                            model: goalsModel
+                            model: Habits.habits
 
-                            Row {
-                                spacing: landscape.boxSpacing
-
-                                Repeater {
-                                    model: landscape.daysInMonth
-
-                                    Rectangle {
-                                        width: landscape.boxSize
-                                        height: landscape.boxSize
-                                        color: "white"
-                                        border.color: "black"
-                                        border.width: 2
-
-                                        Rectangle {
-                                            anchors.fill: parent
-                                            anchors.leftMargin: -landscape.boxSpacing / 2
-                                            anchors.rightMargin: -landscape.boxSpacing / 2
-                                            anchors.topMargin: -landscape.rowSpacing / 2
-                                            anchors.bottomMargin: -landscape.rowSpacing / 2
-                                            color: index + 1 === landscape.currentDay ? "black" : "transparent"
-                                            z: -1
-                                        }
-                                    }
-                                }
+                            App.HabitGridRow {
+                                daysInMonth: landscape.daysInMonth
+                                currentDay: landscape.currentDay
                             }
                         }
                     }
                 }
 
-                Rectangle {
-                    width: landscape.buttonWidth
-                    height: goalsList.height
-                    color: "white"
-                    border.color: "black"
-                    border.width: 3
-                    opacity: landscape.scrollX < landscape.maxScrollX ? 1.0 : 0.3
-
-                    Text {
-                        anchors.centerIn: parent
-                        text: "›"
-                        font.pixelSize: 64
-                        color: "black"
-                    }
-
-                    MouseArea {
-                        anchors.fill: parent
-                        onClicked: landscape.scrollByBoxes(7)
-                    }
+                App.AppButton {
+                    width: App.Theme.buttonWidth
+                    height: gridStack.height
+                    text: "›"
+                    fontSize: App.Theme.scrollFont
+                    fadeOpacity: landscape.scrollX < landscape.maxScrollX ? 1.0 : App.Theme.fadedOpacity
+                    onClicked: landscape.scrollByBoxes(7)
                 }
             }
         }
 
-        Rectangle {
+        App.AppButton {
             anchors.right: parent.right
             anchors.bottom: parent.bottom
-            anchors.margins: landscape.margin
-            width: 160
-            height: 60
-            color: "white"
-            border.color: "black"
-            border.width: 3
-
-            Text {
-                anchors.centerIn: parent
-                text: "Quit"
-                font.pixelSize: 28
-                color: "black"
-            }
-
-            MouseArea {
-                anchors.fill: parent
-                onClicked: root.close()
-            }
+            anchors.margins: App.Theme.margin
+            width: App.Theme.quitButtonWidth
+            height: App.Theme.quitButtonHeight
+            text: "Quit"
+            onClicked: root.close()
         }
     }
 }

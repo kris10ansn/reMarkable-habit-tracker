@@ -1,5 +1,14 @@
 <RCC>
     <qresource>
         <file>ui/Main.qml</file>
+        <file>ui/qmldir</file>
+        <file>ui/Theme.qml</file>
+        <file>ui/AppButton.qml</file>
+        <file>ui/MonthHeader.qml</file>
+        <file>ui/HabitRow.qml</file>
+        <file>ui/DayLabelsRow.qml</file>
+        <file>ui/HabitGridRow.qml</file>
+        <file>ui/DateUtils.js</file>
+        <file>ui/habits.js</file>
     </qresource>
 </RCC>
