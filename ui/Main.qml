@@ -10,6 +10,8 @@ Rectangle {
         console.log("rmhello unloading");
     }
 
+    property int currentDay: new Date().getDate()
+
     Component.onCompleted: console.log("rmhello loaded; size:", width, "x", height)
 
     Item {
@@ -68,6 +70,16 @@ Rectangle {
                                 color: "white"
                                 border.color: "black"
                                 border.width: 2
+
+                                Rectangle {
+                                    anchors.fill: parent
+                                    anchors.leftMargin: -landscape.boxSpacing / 2
+                                    anchors.rightMargin: -landscape.boxSpacing / 2
+                                    anchors.topMargin: -landscape.rowSpacing / 2
+                                    anchors.bottomMargin: -landscape.rowSpacing / 2
+                                    color: index + 1 === root.currentDay ? "black" : "transparent"
+                                    z: -1
+                                }
                             }
                         }
                     }
