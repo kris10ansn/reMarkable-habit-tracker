@@ -7,13 +7,69 @@ Row {
     property string name: ""
     property bool negative: false
     property bool editing: false
+    property bool canMoveUp: false
+    property bool canMoveDown: false
     signal removeClicked
     signal negativeToggled
     signal nameEdited(string newName)
+    signal moveUpClicked
+    signal moveDownClicked
 
     width: App.Theme.habitsWidth
     height: App.Theme.boxSize
     spacing: App.Theme.boxSpacing
+
+    Column {
+        id: reorderColumn
+        width: App.Theme.deleteButtonSize
+        height: App.Theme.boxSize
+        spacing: App.Theme.boxSpacing
+        visible: habitRow.editing
+
+        Rectangle {
+            width: parent.width
+            height: (App.Theme.boxSize - App.Theme.boxSpacing) / 2
+            color: App.Theme.bg
+            border.color: App.Theme.fg
+            border.width: App.Theme.buttonBorderWidth
+            opacity: habitRow.canMoveUp ? 1.0 : App.Theme.fadedOpacity
+
+            Text {
+                anchors.centerIn: parent
+                text: "↑"
+                font.pixelSize: App.Theme.buttonFont
+                color: App.Theme.fg
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                enabled: habitRow.canMoveUp
+                onClicked: habitRow.moveUpClicked()
+            }
+        }
+
+        Rectangle {
+            width: parent.width
+            height: (App.Theme.boxSize - App.Theme.boxSpacing) / 2
+            color: App.Theme.bg
+            border.color: App.Theme.fg
+            border.width: App.Theme.buttonBorderWidth
+            opacity: habitRow.canMoveDown ? 1.0 : App.Theme.fadedOpacity
+
+            Text {
+                anchors.centerIn: parent
+                text: "↓"
+                font.pixelSize: App.Theme.buttonFont
+                color: App.Theme.fg
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                enabled: habitRow.canMoveDown
+                onClicked: habitRow.moveDownClicked()
+            }
+        }
+    }
 
     Rectangle {
         id: deleteButton
@@ -41,7 +97,7 @@ Row {
     Item {
         id: nameSlot
         width: habitRow.width
-               - (habitRow.editing ? 2 * (App.Theme.deleteButtonSize + habitRow.spacing) : 0)
+               - (habitRow.editing ? 3 * (App.Theme.deleteButtonSize + habitRow.spacing) : 0)
         height: habitRow.height
 
         Text {

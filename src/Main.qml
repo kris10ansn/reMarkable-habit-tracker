@@ -86,9 +86,13 @@ Rectangle {
                             name: modelData.name
                             negative: modelData.negative
                             editing: landscape.editing
+                            canMoveUp: index > 0
+                            canMoveDown: index < habitsStore.habits.length - 1
                             onRemoveClicked: landscape.pendingDeleteIndex = index
                             onNegativeToggled: habitsStore.setNegative(index, !modelData.negative)
                             onNameEdited: habitsStore.setName(index, newName)
+                            onMoveUpClicked: habitsStore.move(index, index - 1)
+                            onMoveDownClicked: habitsStore.move(index, index + 1)
                         }
                     }
 

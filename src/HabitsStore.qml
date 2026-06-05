@@ -45,6 +45,17 @@ QtObject {
         save();
     }
 
+    function move(fromIndex, toIndex) {
+        if (fromIndex < 0 || fromIndex >= habits.length) return;
+        if (toIndex < 0 || toIndex >= habits.length) return;
+        if (fromIndex === toIndex) return;
+        var copy = habits.slice();
+        var item = copy.splice(fromIndex, 1)[0];
+        copy.splice(toIndex, 0, item);
+        habits = copy;
+        save();
+    }
+
     function remove(index) {
         if (index < 0 || index >= habits.length) return;
         var copy = habits.slice();
