@@ -32,7 +32,7 @@ There are no tests or linters.
 These are easy to miss and have already cost debug cycles:
 
 1. **QML is not deployed loose.** apploader loads QML from a Qt **binary resource** (`resources.rcc`), not from `.qml` files on disk. `application.qrc` lists files to bundle; `rcc --binary` produces the `.rcc`; only the `.rcc` (plus `manifest.json` + `icon.png`) gets deployed.
-2. **`entry` in `manifest.json` must start with `/`.** apploader builds the load URL as `qrc:/<random-nonce><entry>` (raw concatenation, no separator added). Without the leading slash you get `qrc:/NONCEMain.qml` and "No such file." Path is *inside* the rcc.
+2. **`entry` in `manifest.json` must start with `/`.** apploader builds the load URL as `qrc:/<random-nonce><entry>` (raw concatenation, no separator added). Without the leading slash you get `qrc:/NONCEMain.qml` and "No such file." Path is _inside_ the rcc.
 3. **Root QML conventions.** The root component must declare `signal close` and `function unloading() { ... }`. Emit `close()` from your "Quit" handler to ask apploader to unload the frontend — `Qt.quit()` is a no-op (Qt's process is xochitl).
 4. **No hardcoded root size.** apploader sizes the container; use `anchors.fill: parent` on the root and anchor children to it. Hardcoded `width: 1404; height: 1872` will be silently ignored.
 
@@ -57,7 +57,11 @@ Tail this in another terminal while launching the app. apploader prefixes its ow
 
 ## Adding new QML files
 
-Append to `<qresource>` in `application.qrc`, then `make deploy`. The `entry` field stays pointing at the root component.
+Append to `<qresource>` in `application.qrc` **and** register the type in the directory's `qmldir`. The `entry` field stays pointing at the root component.
+
+## QML import namespaces
+
+`Main.qml` does `import "." as App` and `import "components" as App`, so both `Theme` (in `src/`) and components (in `src/components/`) are reached via the `App.` prefix. **Files inside `src/components/` use `import ".." as App` — that prefix points at `src/`, NOT at `src/components/`.** From a component file, reference sibling components bare (`AppButton`, not `App.AppButton`); use `App.Theme` for the singleton. Getting this wrong fails at load with `Type App.X unavailable / No such file or directory` pointing at `src/X.qml`.
 
 ## Keep README.md current
 
@@ -72,6 +76,7 @@ When functionality changes (new features, removed features, changed UX, new comm
 ## Maintaining this file
 
 As Claude learns your code style, QML patterns, and working preferences, update this document to capture non-obvious patterns or rules. Keep it lean (under 200 lines) — focus on:
+
 - Gotchas that have burned cycles
 - Style or architecture choices specific to this project
 - Constraints that affect design decisions
