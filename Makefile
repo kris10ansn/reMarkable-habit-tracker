@@ -1,5 +1,5 @@
 REMARKABLE_HOST ?= remarkable
-APP_ID := rmhello
+APP_ID := habit-tracker
 REMOTE_DIR := /home/root/xovi/exthome/appload/$(APP_ID)
 RCC ?= rcc-qt5
 BUILD_DIR := build

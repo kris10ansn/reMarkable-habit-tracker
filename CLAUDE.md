@@ -8,7 +8,7 @@ Update CLAUDE.md as you learn the user's preferences for code style, workflow, o
 
 ## What this is
 
-A pure-QML hello-world app for **reMarkable 1**, launched via **apploader** — specifically the XOVI extension `asivery/rm-appload`. apploader's frontend runtime is QML, loaded inside xochitl's process. No backend.
+A pure-QML **habit tracker** for **reMarkable 1**, launched via **apploader** — specifically the XOVI extension `asivery/rm-appload`. apploader's frontend runtime is QML, loaded inside xochitl's process. No backend. Renders a landscape grid of habits × days-of-the-current-month with the current day highlighted.
 
 ## Hard rule: never SSH to the device
 
@@ -19,7 +19,7 @@ This applies even when a `make` target wraps the SSH (e.g. `make deploy`, `make 
 ## Commands
 
 - `make build` — compiles `application.qrc` → `build/resources.rcc` via `rcc-qt5`, stages `manifest.json` + `icon.png` alongside it.
-- `make deploy` — builds, then `scp`s `build/*` to `/home/root/xovi/exthome/appload/rmhello/` on the device.
+- `make deploy` — builds, then `scp`s `build/*` to `/home/root/xovi/exthome/appload/habit-tracker/` on the device.
 - `make remove` — uninstalls from the device.
 - `make clean` — removes local `build/`.
 
@@ -52,7 +52,7 @@ Append to `<qresource>` in `application.qrc`, then `make deploy`. The `entry` fi
 
 ## Device-side details
 
-- App lives at `/home/root/xovi/exthome/appload/rmhello/` after deploy.
+- App lives at `/home/root/xovi/exthome/appload/habit-tracker/` after deploy.
 - Open apploader on the device by holding the middle button ~3 seconds.
 - The repo lives under `~/src/rust/` but is not a Rust project — naming is historical (prior attempts under `remarkable-app/` and `remarkable-helloworld-2/` were Rust; this is now a single `Main.qml`).
 

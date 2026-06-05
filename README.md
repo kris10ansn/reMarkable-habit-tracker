@@ -1,49 +1,108 @@
-# rmhello
+# reMarkable habit tracker
 
-A pure-QML daily-goal-tracker prototype for reMarkable 1, launched via apploader (XOVI `rm-appload`). Renders a landscape grid of goals × days-of-the-month with the current day highlighted. The package name is historical — it started as a hello-world.
+A small habit tracker for the **reMarkable 1** e-ink tablet. It draws a landscape grid: one row per habit, one column per day of the current month, with today's column highlighted. No syncing, no accounts, no backend — just a QML scene rendered on the device.
 
-## Layout
+This is a prototype: the habit list is hard-coded in `ui/Main.qml` and check-marks aren't persisted yet.
+
+## What it looks like
+
+```
+June 2026
+30 days · today is day 5
+
+Read 20 pages           ▢ ▢ ▢ ▢ ▣ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ …
+Exercise                ▢ ▢ ▢ ▢ ▣ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ …
+Meditate                ▢ ▢ ▢ ▢ ▣ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ …
+No screens after 22:00  ▢ ▢ ▢ ▢ ▣ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ …
+Journal                 ▢ ▢ ▢ ▢ ▣ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ …
+
+                                                       [ Quit ]
+```
+
+## How it runs (and why the stack looks the way it does)
+
+The reMarkable 1 ships with **xochitl**, the stock UI. There's no official way to launch third-party apps. This project depends on a community stack that bolts an app menu onto xochitl:
+
+- **XOVI** — a function-hooking framework that loads extensions into xochitl.
+- **rm-appload** (`asivery/rm-appload`) — an XOVI extension. It overlays a launcher on xochitl (hold the middle button ~3 seconds to open it) and runs each app's frontend inside xochitl's own Qt process. The frontend runtime it exposes is **QML** (Qt 5.15 — what the rM1 firmware ships).
+
+So the "app" is a QML scene that apploader loads into xochitl. No separate process, no Wayland/X, no framebuffer driver — Qt's existing render path on the device does the drawing.
+
+apploader doesn't read loose `.qml` files at runtime — it expects them packaged into a **Qt binary resource** (`.rcc`). The build step here just runs Qt 5's `rcc --binary` over `application.qrc` to produce one. Deploy = `scp` three files (`resources.rcc`, `manifest.json`, `icon.png`) into apploader's app directory on the device.
+
+### Stack at a glance
+
+| Layer       | What                                                          |
+| ----------- | ------------------------------------------------------------- |
+| Hardware    | reMarkable 1 (e-ink, ARM, Linux-based firmware)               |
+| Stock UI    | xochitl (Qt 5.15 process)                                     |
+| Hooking     | XOVI                                                          |
+| App runtime | rm-appload (XOVI extension, QML frontend host)                |
+| This app    | A single `Main.qml`, no JS modules, no backend                |
+| Build       | `rcc-qt5 --binary` → `resources.rcc`                          |
+| Deploy      | `scp` to `/home/root/xovi/exthome/appload/habit-tracker/`     |
+
+## Repo layout
 
 ```
 .
-├── application.qrc   # qrc manifest — lists files to bundle into the .rcc
-├── ui/Main.qml       # the app — root component with signal close + unloading()
-├── manifest.json     # apploader manifest
-├── icon.png          # launcher icon
-├── Makefile          # build, deploy, remove, clean
+├── application.qrc   # lists files to bundle into the .rcc
+├── ui/Main.qml       # the entire app; root declares signal close + unloading()
+├── manifest.json     # apploader manifest (id, display name, entry path inside the rcc)
+├── icon.png          # launcher icon shown in apploader
+├── Makefile          # build / deploy / remove / clean
 └── build/            # rcc output + deploy staging (gitignored)
 ```
 
-apploader expects QML packaged into a Qt **binary resource** (`resources.rcc`) — loose `.qml` files won't be found. The Makefile invokes `rcc-qt5 --binary` to produce `build/resources.rcc`, then deploys `resources.rcc + manifest.json + icon.png` to the device.
+## Prerequisites
 
-## Requirements (host)
+On your **host machine** (Linux/macOS):
 
-- Qt 5's `rcc` (`rcc-qt5` on Arch/Manjaro). Override with `make RCC=<path>` if needed.
-- `ssh remarkable` (override with `make REMARKABLE_HOST=<host>`).
+- **Qt 5's `rcc`.**
+  - Arch/Manjaro: `pacman -S qt5-base` (binary is `rcc-qt5`)
+  - Debian/Ubuntu: `apt install qtbase5-dev-tools` (binary is `/usr/lib/qt5/bin/rcc`)
+  - macOS: `brew install qt@5`
+
+  Override with `make RCC=<path>` if it isn't on `$PATH` as `rcc-qt5`. Qt 6's `rcc` works for `--binary` too, but the device runtime is Qt 5.15 — stay on 5 to avoid surprises.
+- **SSH access to the device** as `ssh remarkable` (i.e. an entry in `~/.ssh/config`). Override the host with `make REMARKABLE_HOST=<host>`.
+
+On the **device** you need an installed XOVI + rm-appload setup. See [`asivery/rm-appload`](https://github.com/asivery/rm-appload) for installation — that's the prerequisite that makes this app loadable at all.
 
 ## Build & deploy
 
-```
+```sh
 make build      # produces build/resources.rcc + staged icon/manifest
-make deploy     # rsyncs build/* to /home/root/xovi/exthome/appload/rmhello/
-make remove     # uninstalls
-make clean      # local cleanup
+make deploy     # scps build/* to /home/root/xovi/exthome/appload/habit-tracker/
+make remove     # uninstalls from the device
+make clean      # nukes local build/
 ```
 
-On the device, open apploader (hold middle button ~3s) — the rmhello tile should appear. Tap to launch; tap "Quit" (bottom-right) to close.
+On the device, hold the middle button ~3 seconds to open apploader. The "reMarkable habit tracker" tile should appear; tap to launch, tap **Quit** (bottom-right) to close.
+
+## Customizing the habits
+
+Edit the `goalsModel` `ListModel` near the top of `ui/Main.qml`, then `make deploy`. There's no in-app editor yet.
 
 ## Debugging
 
-Tail xochitl's stderr while testing:
+apploader runs inside xochitl, so QML parse errors and `console.log()` output go to xochitl's stderr → systemd journal on the device. Tail it while testing:
 
-```
+```sh
 ssh remarkable journalctl -fu xochitl --no-pager
 ```
 
-QML parse errors, `console.log()` output, and apploader load/unload messages all surface there.
+apploader prefixes its messages with `[AppLoad]:` / `[QTFB]:`. `[QTFB]: Unregistered framebuffer controller ID: -1` is harmless for QML-only apps.
 
-## Notes
+## Gotchas worth knowing before editing
 
-- `entry` in `manifest.json` is the path *inside* the rcc, e.g. `/ui/Main.qml`. It must start with `/` — apploader concatenates it onto `qrc:/<nonce>`.
-- The root QML must declare `signal close` and `function unloading()` per apploader convention. Emit `close()` from your Quit handler to ask apploader to unload the frontend.
-- Don't set hardcoded `width`/`height` on the root; use `anchors.fill: parent` so apploader's container sizes you.
+These have already cost real debug cycles:
+
+1. **QML files must live inside the `.rcc`.** Loose `.qml` on the device won't be found. Add new files to `<qresource>` in `application.qrc` and rebuild.
+2. **`entry` in `manifest.json` must start with `/`.** apploader concatenates the entry onto `qrc:/<nonce>` with no separator; without the leading slash you get `qrc:/NONCEMain.qml` and "No such file."
+3. **Root QML conventions.** The root component must declare `signal close` and `function unloading() { ... }`. Emit `close()` from your Quit handler — `Qt.quit()` is a no-op (Qt's process is xochitl, you don't own it).
+4. **No hardcoded root size.** apploader sizes the container; use `anchors.fill: parent` on the root. Hardcoded `width: 1404; height: 1872` is silently ignored.
+5. **The grid is rendered rotated 90°.** The screen is portrait, but the layout reads better landscape — `Main.qml` has a centered `Item { rotation: 90 }` wrapper that swaps `width`/`height` and anchors the layout into it.
+
+## A note on naming
+
+The repo lives under `~/src/rust/` — that's historical. Earlier attempts at a reMarkable app were Rust (`remarkable-app/`, `remarkable-helloworld-2/`); this iteration is QML-only, and the prototype started life as a hello-world before turning into a habit tracker.

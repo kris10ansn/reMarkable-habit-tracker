@@ -7,10 +7,10 @@ Rectangle {
 
     signal close
     function unloading() {
-        console.log("rmhello unloading");
+        console.log("Habit Tracker unloading");
     }
 
-    Component.onCompleted: console.log("rmhello loaded; size:", width, "x", height)
+    Component.onCompleted: console.log("Habit Tracker loaded; size:", width, "x", height)
 
     Item {
         id: landscape

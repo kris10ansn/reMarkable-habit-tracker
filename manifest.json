@@ -1,6 +1,6 @@
 {
-    "id": "rmhello",
-    "name": "Hello World!",
+    "id": "habit-tracker",
+    "name": "reMarkable habit tracker",
     "entry": "/ui/Main.qml",
     "loadsBackend": false,
     "canHaveMultipleFrontends": false,
