@@ -43,7 +43,7 @@ Rectangle {
             scrollX = clampScroll(target)
         }
 
-        Component.onCompleted: scrollToDay(currentDay)
+        onViewportWidthChanged: scrollToDay(currentDay)
 
         Column {
             anchors.fill: parent
