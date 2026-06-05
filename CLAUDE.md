@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Maintaining this file
+
+Update CLAUDE.md as you learn the user's preferences for code style, workflow, or project conventions that should persist across sessions. Keep it lean: max 200 lines, every line must earn its place. Prefer tightening or replacing existing sections over appending new ones, and remove guidance that becomes obsolete.
+
 ## What this is
 
 A pure-QML hello-world app for **reMarkable 1**, launched via **apploader** — specifically the XOVI extension `asivery/rm-appload`. apploader's frontend runtime is QML, loaded inside xochitl's process. No backend.
@@ -51,3 +55,13 @@ Append to `<qresource>` in `application.qrc`, then `make deploy`. The `entry` fi
 - App lives at `/home/root/xovi/exthome/appload/rmhello/` after deploy.
 - Open apploader on the device by holding the middle button ~3 seconds.
 - The repo lives under `~/src/rust/` but is not a Rust project — naming is historical (prior attempts under `remarkable-app/` and `remarkable-helloworld-2/` were Rust; this is now a single `Main.qml`).
+
+## Maintaining this file
+
+As Claude learns your code style, QML patterns, and working preferences, update this document to capture non-obvious patterns or rules. Keep it lean (under 200 lines) — focus on:
+- Gotchas that have burned cycles
+- Style or architecture choices specific to this project
+- Constraints that affect design decisions
+- Anything that would surprise a future reader
+
+This stays checked in; future sessions will read it and adjust approach accordingly.
