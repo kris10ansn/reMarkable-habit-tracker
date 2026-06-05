@@ -30,6 +30,7 @@ Rectangle {
         property int daysInMonth: DateUtils.daysInMonth(today)
         property int currentDay: today.getDate()
         property bool editing: false
+        property int pendingDeleteIndex: -1
 
         property int viewportWidth: width - 2 * App.Theme.margin - App.Theme.habitsWidth - App.Theme.labelGap - 2 * App.Theme.buttonWidth - 2 * App.Theme.buttonGap
         property int contentWidth: daysInMonth * App.Theme.boxSize + (daysInMonth - 1) * App.Theme.boxSpacing
@@ -83,7 +84,7 @@ Rectangle {
                             name: modelData.name
                             negative: modelData.negative
                             editing: landscape.editing
-                            onRemoveClicked: habitsStore.remove(index)
+                            onRemoveClicked: landscape.pendingDeleteIndex = index
                             onNegativeToggled: habitsStore.setNegative(index, !modelData.negative)
                             onNameEdited: habitsStore.setName(index, newName)
                         }
@@ -196,6 +197,19 @@ Rectangle {
             height: App.Theme.quitButtonHeight
             text: landscape.editing ? "Done" : "Edit"
             onClicked: landscape.editing = !landscape.editing
+        }
+
+        App.ConfirmDialog {
+            visible: landscape.pendingDeleteIndex >= 0
+            message: visible
+                ? "Delete “" + habitsStore.habits[landscape.pendingDeleteIndex].name + "”?"
+                : ""
+            confirmText: "Delete"
+            onConfirmed: {
+                habitsStore.remove(landscape.pendingDeleteIndex)
+                landscape.pendingDeleteIndex = -1
+            }
+            onCancelled: landscape.pendingDeleteIndex = -1
         }
     }
 }
