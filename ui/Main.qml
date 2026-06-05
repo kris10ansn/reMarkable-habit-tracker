@@ -25,6 +25,11 @@ Rectangle {
         property int boxSpacing: 6
         property int rowSpacing: 24
 
+        property var today: new Date()
+        property int daysInMonth: new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate()
+        property int currentDay: today.getDate()
+        property string monthName: today.toLocaleString(Qt.locale(), "MMMM yyyy")
+
         ListModel {
             id: goalsModel
             ListElement { name: "Read 20 pages" }
@@ -38,6 +43,23 @@ Rectangle {
             anchors.fill: parent
             anchors.margins: landscape.margin
             spacing: landscape.rowSpacing
+
+            Column {
+                spacing: 4
+
+                Text {
+                    text: landscape.monthName
+                    font.pixelSize: 48
+                    font.bold: true
+                    color: "black"
+                }
+
+                Text {
+                    text: landscape.daysInMonth + " days · today is day " + landscape.currentDay
+                    font.pixelSize: 24
+                    color: "black"
+                }
+            }
 
             Repeater {
                 model: goalsModel
@@ -60,7 +82,7 @@ Rectangle {
                         spacing: landscape.boxSpacing
 
                         Repeater {
-                            model: 31
+                            model: landscape.daysInMonth
 
                             Rectangle {
                                 width: landscape.boxSize
