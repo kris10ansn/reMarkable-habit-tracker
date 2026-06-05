@@ -15,7 +15,9 @@ Rectangle {
 
     Component.onCompleted: console.log("Habit Tracker loaded; size:", width, "x", height)
 
-    App.HabitsStore { id: habitsStore }
+    App.HabitsStore {
+        id: habitsStore
+    }
 
     Item {
         id: landscape
@@ -35,14 +37,14 @@ Rectangle {
         property int scrollX: 0
 
         function clampScroll(x) {
-            return Math.max(0, Math.min(maxScrollX, x))
+            return Math.max(0, Math.min(maxScrollX, x));
         }
         function scrollByBoxes(n) {
-            scrollX = clampScroll(scrollX + n * (App.Theme.boxSize + App.Theme.boxSpacing))
+            scrollX = clampScroll(scrollX + n * (App.Theme.boxSize + App.Theme.boxSpacing));
         }
         function scrollToDay(day) {
-            var target = (day - 1) * (App.Theme.boxSize + App.Theme.boxSpacing) - viewportWidth / 2 + App.Theme.boxSize / 2
-            scrollX = clampScroll(target)
+            var target = (day - 1) * (App.Theme.boxSize + App.Theme.boxSpacing) - viewportWidth / 2 + App.Theme.boxSize / 2;
+            scrollX = clampScroll(target);
         }
 
         onViewportWidthChanged: scrollToDay(currentDay)
@@ -141,6 +143,7 @@ Rectangle {
                         }
                     }
 
+                    // Draw vertical lines every 7 days
                     Repeater {
                         model: Math.floor((landscape.daysInMonth - 1) / 7)
 
