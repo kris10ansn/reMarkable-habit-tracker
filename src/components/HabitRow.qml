@@ -9,6 +9,7 @@ Row {
     property bool editing: false
     signal removeClicked
     signal negativeToggled
+    signal nameEdited(string newName)
 
     width: App.Theme.habitsWidth
     height: App.Theme.boxSize
@@ -37,15 +38,50 @@ Row {
         }
     }
 
-    Text {
+    Item {
+        id: nameSlot
         width: habitRow.width
                - (habitRow.editing ? 2 * (App.Theme.deleteButtonSize + habitRow.spacing) : 0)
         height: habitRow.height
-        text: habitRow.name
-        font.pixelSize: App.Theme.labelFont
-        color: App.Theme.fg
-        verticalAlignment: Text.AlignVCenter
-        elide: Text.ElideRight
+
+        Text {
+            anchors.fill: parent
+            visible: !habitRow.editing
+            text: habitRow.name
+            font.pixelSize: App.Theme.labelFont
+            color: App.Theme.fg
+            verticalAlignment: Text.AlignVCenter
+            elide: Text.ElideRight
+        }
+
+        Rectangle {
+            anchors.fill: parent
+            visible: habitRow.editing
+            color: App.Theme.bg
+            border.color: App.Theme.fg
+            border.width: App.Theme.borderWidth
+
+            TextInput {
+                id: nameInput
+                anchors.fill: parent
+                anchors.margins: App.Theme.inputPadding
+                text: habitRow.name
+                font.pixelSize: App.Theme.labelFont
+                color: App.Theme.fg
+                verticalAlignment: TextInput.AlignVCenter
+                clip: true
+                selectByMouse: true
+
+                onEditingFinished: {
+                    var trimmed = text.replace(/^\s+|\s+$/g, "");
+                    if (trimmed && trimmed !== habitRow.name) {
+                        habitRow.nameEdited(trimmed);
+                    } else {
+                        text = habitRow.name;
+                    }
+                }
+            }
+        }
     }
 
     Rectangle {

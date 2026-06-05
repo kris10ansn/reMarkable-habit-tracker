@@ -60,4 +60,14 @@ QtObject {
         habits = copy;
         save();
     }
+
+    function setName(index, name) {
+        if (index < 0 || index >= habits.length) return;
+        var trimmed = (name || "").replace(/^\s+|\s+$/g, "");
+        if (!trimmed) return;
+        var copy = habits.slice();
+        copy[index] = { name: trimmed, negative: copy[index].negative };
+        habits = copy;
+        save();
+    }
 }

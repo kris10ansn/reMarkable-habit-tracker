@@ -85,6 +85,7 @@ Rectangle {
                             editing: landscape.editing
                             onRemoveClicked: habitsStore.remove(index)
                             onNegativeToggled: habitsStore.setNegative(index, !modelData.negative)
+                            onNameEdited: habitsStore.setName(index, newName)
                         }
                     }
 
