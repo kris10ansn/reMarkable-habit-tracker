@@ -6,11 +6,13 @@ Row {
 
     property string name: ""
     property bool negative: false
+    property bool hideFromSleep: false
     property bool editing: false
     property bool canMoveUp: false
     property bool canMoveDown: false
     signal removeClicked
     signal negativeToggled
+    signal hideFromSleepToggled
     signal nameEdited(string newName)
     signal moveUpClicked
     signal moveDownClicked
@@ -96,7 +98,7 @@ Row {
 
     Item {
         id: nameSlot
-        width: habitRow.width - (habitRow.editing ? 3 * (App.Theme.deleteButtonSize + habitRow.spacing) : 0)
+        width: habitRow.width - (habitRow.editing ? 4 * (App.Theme.deleteButtonSize + habitRow.spacing) : 0)
         height: habitRow.height
 
         Text {
@@ -159,6 +161,29 @@ Row {
         MouseArea {
             anchors.fill: parent
             onClicked: habitRow.negativeToggled()
+        }
+    }
+
+    Rectangle {
+        id: hideFromSleepButton
+        width: App.Theme.deleteButtonSize
+        height: App.Theme.deleteButtonSize
+        anchors.verticalCenter: parent.verticalCenter
+        visible: habitRow.editing
+        color: habitRow.hideFromSleep ? App.Theme.bg : App.Theme.fg
+        border.color: App.Theme.fg
+        border.width: App.Theme.buttonBorderWidth
+
+        Text {
+            anchors.centerIn: parent
+            text: "Z"
+            font.pixelSize: App.Theme.buttonFont
+            color: habitRow.hideFromSleep ? App.Theme.fg : App.Theme.bg
+        }
+
+        MouseArea {
+            anchors.fill: parent
+            onClicked: habitRow.hideFromSleepToggled()
         }
     }
 }

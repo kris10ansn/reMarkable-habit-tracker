@@ -4,6 +4,7 @@ import QtQuick 2.15
 QtObject {
     property int margin: 40
     property int habitsWidth: 360
+    property int editingExtraWidth: 200
     property int boxSize: 80
     property int boxSpacing: 12
     property int rowSpacing: 24

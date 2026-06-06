@@ -50,7 +50,8 @@ Rectangle {
         property int pendingDeleteIndex: -1
 
         property int step: App.Theme.boxSize + App.Theme.boxSpacing
-        property int viewportWidth: width - 2 * App.Theme.margin - App.Theme.habitsWidth - App.Theme.labelGap - 2 * App.Theme.buttonWidth - 2 * App.Theme.buttonGap
+        property int habitsRowWidth: App.Theme.habitsWidth + (editing ? App.Theme.editingExtraWidth : 0)
+        property int viewportWidth: width - 2 * App.Theme.margin - habitsRowWidth - App.Theme.labelGap - 2 * App.Theme.buttonWidth - 2 * App.Theme.buttonGap
         property int contentWidth: daysInMonth * App.Theme.boxSize + (daysInMonth - 1) * App.Theme.boxSpacing
         property int maxScrollX: Math.max(0, contentWidth - viewportWidth)
         property int scrollX: 0
@@ -80,8 +81,10 @@ Rectangle {
                 App.HabitsColumn {
                     habits: habitsStore.habits
                     editing: landscape.editing
+                    rowWidth: landscape.habitsRowWidth
                     onRemoveRequested: landscape.pendingDeleteIndex = index
                     onNegativeToggled: habitsStore.setNegative(index, !habitsStore.habits[index].negative)
+                    onHideFromSleepToggled: habitsStore.setHideFromSleep(index, !habitsStore.habits[index].hideFromSleep)
                     onNameEdited: habitsStore.setName(index, newName)
                     onMoveRequested: habitsStore.move(from, to)
                     onAddRequested: habitsStore.add(name, negative)

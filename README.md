@@ -88,7 +88,7 @@ On the device, hold the middle button ~3 seconds to open apploader. The "reMarka
 
 ## Customizing the habits
 
-Tap **Edit** (bottom-right, next to **Quit**) to enter edit mode. Each row gains `↑`/`↓` buttons to reorder it, a `×` to delete it, a `−` toggle to mark the habit as negative (tracks slips rather than wins), and the habit name becomes editable. An input row appears at the bottom of the habit list — type a name and tap **+** (or press Enter) to add. Tap **Done** to leave edit mode.
+Tap **Edit** (bottom-right, next to **Quit**) to enter edit mode. Each row gains `↑`/`↓` buttons to reorder it, a `×` to delete it, a `−` toggle to mark the habit as negative (tracks slips rather than wins), a `Z` toggle (on by default) that controls whether the habit appears on the sleep screen, and the habit name becomes editable. An input row appears at the bottom of the habit list — type a name and tap **+** (or press Enter) to add. Tap **Done** to leave edit mode.
 
 The list is persisted to `habits.json` next to the app on the device (`/home/root/xovi/exthome/appload/habit-tracker/habits.json`). On first launch the file is seeded from the defaults in `src/js/habits.js`. To wipe back to defaults, delete that file on the device and relaunch.
 

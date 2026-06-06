@@ -36,8 +36,10 @@ const drawContent = (ctx, width, height, habits, today, cfg) => {
     drawDayLabels(ctx, gridX, y, daysIn, currentDay, cfg);
     y += cfg.dayLabelHeight + cfg.rowSpacing;
 
-    for (let i = 0; i < habits.length; i++) {
-        const habit = habits[i];
+    const visible = habits.filter((h) => !h.hideFromSleep);
+
+    for (let i = 0; i < visible.length; i++) {
+        const habit = visible[i];
         drawHabitName(ctx, habitsX, y, habit.name, cfg);
         drawHabitCells(ctx, gridX, y, habit, daysIn, currentDay, year, month, cfg);
         y += cfg.boxSize + cfg.rowSpacing;

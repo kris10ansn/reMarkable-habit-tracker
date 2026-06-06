@@ -58,6 +58,12 @@ function setNegative(habits, index, negative) {
     return updateAt(habits, index, { negative: !!negative });
 }
 
+function setHideFromSleep(habits, index, hidden) {
+    if (!inBounds(habits, index)) return null;
+
+    return updateAt(habits, index, { hideFromSleep: !!hidden });
+}
+
 function setName(habits, index, name) {
     const trimmed = trim(name);
     if (!inBounds(habits, index) || !trimmed) return null;

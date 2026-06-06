@@ -44,6 +44,7 @@ QtObject {
     function move(from, to)              { _apply(Logic.moveHabit(habits, from, to)) }
     function remove(index)               { _apply(Logic.removeHabit(habits, index)) }
     function setNegative(index, negative){ _apply(Logic.setNegative(habits, index, negative)) }
+    function setHideFromSleep(index, hidden) { _apply(Logic.setHideFromSleep(habits, index, hidden)) }
     function setName(index, name)        { _apply(Logic.setName(habits, index, name)) }
     function toggleEntry(index, dateKey) { _apply(Logic.toggleEntry(habits, index, dateKey)) }
 }
