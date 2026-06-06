@@ -30,7 +30,7 @@ Rectangle {
 
     Connections {
         target: habitsStore
-        function onSaved() { suspendCanvas.render() }
+        function onSaved() { Qt.callLater(suspendCanvas.render) }
     }
 
     Item {

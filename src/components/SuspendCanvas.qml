@@ -29,8 +29,8 @@ Canvas {
         labelFont: App.Theme.labelFont,
         dayLabelFont: App.Theme.dayLabelFont,
         borderWidth: App.Theme.borderWidth,
-        fg: App.Theme.fg,
-        bg: App.Theme.bg
+        fg: "#000000",
+        bg: "#ffffff"
     })
 
     width: 1404
@@ -45,7 +45,10 @@ Canvas {
     onPainted: {
         if (!canvas.saveAfterPaint) return
         canvas.saveAfterPaint = false
+        Qt.callLater(canvas._saveNow)
+    }
 
+    function _saveNow() {
         const ok = canvas.save(canvas.targetPath)
         canvas.rendering = false
         canvas.lastRenderFailed = !ok
