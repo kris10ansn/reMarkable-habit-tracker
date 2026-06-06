@@ -93,12 +93,12 @@ Canvas {
         statusTickTimer.restart()
     }
 
-    function renderNow() {
+    function renderAsync() {
         if (!_beginSaving()) return
         _beginAsyncRender()
     }
 
-    function flushNow() {
+    function renderSync() {
         if (!_beginSaving()) return
         _draw()
         canvas.saveQueued = false

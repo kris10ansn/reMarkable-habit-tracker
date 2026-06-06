@@ -12,12 +12,12 @@ Rectangle {
     signal close
     function unloading() {
         console.log("Habit Tracker unloading");
-        suspendCanvas.flushNow()
+        suspendCanvas.renderSync();
     }
 
     Component.onCompleted: {
-        console.log("Habit Tracker loaded; size:", width, "x", height)
-        suspendCanvas.renderNow()
+        console.log("Habit Tracker loaded; size:", width, "x", height);
+        suspendCanvas.renderAsync();
     }
 
     App.HabitsStore {
@@ -32,7 +32,8 @@ Rectangle {
     Connections {
         target: habitsStore
         function onSaved() {
-            if (!landscape.editing) suspendCanvas.scheduleRender()
+            if (!landscape.editing)
+                suspendCanvas.scheduleRender();
         }
     }
 
@@ -51,7 +52,8 @@ Rectangle {
         property bool editing: false
         property int pendingDeleteIndex: -1
 
-        onEditingChanged: if (!editing) suspendCanvas.renderNow()
+        onEditingChanged: if (!editing)
+            suspendCanvas.renderAsync()
 
         property int step: App.Theme.boxSize + App.Theme.boxSpacing
         property int habitsRowWidth: App.Theme.habitsWidth + (editing ? App.Theme.editingExtraWidth : 0)
@@ -156,13 +158,11 @@ Rectangle {
 
         App.ConfirmDialog {
             visible: landscape.pendingDeleteIndex >= 0
-            message: visible
-                ? "Delete “" + habitsStore.habits[landscape.pendingDeleteIndex].name + "”?"
-                : ""
+            message: visible ? "Delete “" + habitsStore.habits[landscape.pendingDeleteIndex].name + "”?" : ""
             confirmText: "Delete"
             onConfirmed: {
-                habitsStore.remove(landscape.pendingDeleteIndex)
-                landscape.pendingDeleteIndex = -1
+                habitsStore.remove(landscape.pendingDeleteIndex);
+                landscape.pendingDeleteIndex = -1;
             }
             onCancelled: landscape.pendingDeleteIndex = -1
         }
