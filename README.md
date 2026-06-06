@@ -32,15 +32,15 @@ apploader doesn't read loose `.qml` files at runtime — it expects them package
 
 ### Stack at a glance
 
-| Layer       | What                                                          |
-| ----------- | ------------------------------------------------------------- |
-| Hardware    | reMarkable 1 (e-ink, ARM, Linux-based firmware)               |
-| Stock UI    | xochitl (Qt 5.15 process)                                     |
-| Hooking     | XOVI                                                          |
-| App runtime | rm-appload (XOVI extension, QML frontend host)                |
-| This app    | `Main.qml` + a `Theme` singleton, small components, JS data   |
-| Build       | `rcc-qt5 --binary` → `resources.rcc`                          |
-| Deploy      | `scp` to `/home/root/xovi/exthome/appload/habit-tracker/`     |
+| Layer       | What                                                        |
+| ----------- | ----------------------------------------------------------- |
+| Hardware    | reMarkable 1 (e-ink, ARM, Linux-based firmware)             |
+| Stock UI    | xochitl (Qt 5.15 process)                                   |
+| Hooking     | XOVI                                                        |
+| App runtime | rm-appload (XOVI extension, QML frontend host)              |
+| This app    | `Main.qml` + a `Theme` singleton, small components, JS data |
+| Build       | `rcc-qt5 --binary` → `resources.rcc`                        |
+| Deploy      | `scp` to `/home/root/xovi/exthome/appload/habit-tracker/`   |
 
 ## Repo layout
 
@@ -65,11 +65,12 @@ apploader doesn't read loose `.qml` files at runtime — it expects them package
 On your **host machine** (Linux/macOS):
 
 - **Qt 5's `rcc`.**
-  - Arch/Manjaro: `pacman -S qt5-base` (binary is `rcc-qt5`)
-  - Debian/Ubuntu: `apt install qtbase5-dev-tools` (binary is `/usr/lib/qt5/bin/rcc`)
-  - macOS: `brew install qt@5`
+    - Arch/Manjaro: `pacman -S qt5-base` (binary is `rcc-qt5`)
+    - Debian/Ubuntu: `apt install qtbase5-dev-tools` (binary is `/usr/lib/qt5/bin/rcc`)
+    - macOS: `brew install qt@5`
 
-  Override with `make RCC=<path>` if it isn't on `$PATH` as `rcc-qt5`. Qt 6's `rcc` works for `--binary` too, but the device runtime is Qt 5.15 — stay on 5 to avoid surprises.
+    Override with `make RCC=<path>` if it isn't on `$PATH` as `rcc-qt5`. Qt 6's `rcc` works for `--binary` too, but the device runtime is Qt 5.15 — stay on 5 to avoid surprises.
+
 - **SSH access to the device** as `ssh remarkable` (i.e. an entry in `~/.ssh/config`). Override the host with `make REMARKABLE_HOST=<host>`.
 
 On the **device** you need an installed XOVI + rm-appload setup. See [`asivery/rm-appload`](https://github.com/asivery/rm-appload) for installation — that's the prerequisite that makes this app loadable at all.
