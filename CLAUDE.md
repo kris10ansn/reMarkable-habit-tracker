@@ -74,6 +74,7 @@ Append to `<qresource>` in `application.qrc` **and** register the type in the di
 - **Functional style.** Prefer pure functions, immutable updates (spread / `Object.assign` / `slice` over in-place mutation), `.map`/`.filter`/`.reduce` over imperative loops, `const` arrows for small helpers. In `.pragma library` files, top-level exports use `function` declarations; internal helpers use `const` arrows.
 - **Flat code, max 2 levels of nesting.** No `if` / `try` / loop nested 3+ deep. Use early returns, guard clauses, extracted helpers, or logical operators (`||`, `&&`, ternaries) to flatten. If a block would reach 3 levels, extract a function.
 - **In QML bindings, prefer expressions over imperative blocks.** A `property` or signal handler that's just an `if`-ladder returning values should be a ternary, or a small extracted `readonly property` should carry the condition.
+- **Blank lines within functions separate logical phases.** Add a blank line after guard clauses / early returns, between setup and computation, or before a return statement. Groups related statements visually.
 - **Self-update on style refactor.** When a refactor revises a code-style preference here (banning a pattern, adopting a new helper convention, moving the JS target), update this section in the same change so future sessions inherit the rule.
 
 ## Keep README.md current
