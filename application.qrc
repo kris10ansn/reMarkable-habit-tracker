@@ -12,7 +12,13 @@
         <file>src/components/DayLabelsRow.qml</file>
         <file>src/components/HabitGridRow.qml</file>
         <file>src/components/ConfirmDialog.qml</file>
+        <file>src/components/SideScrollButton.qml</file>
+        <file>src/components/HabitsColumn.qml</file>
+        <file>src/components/HabitsGrid.qml</file>
         <file>src/js/DateUtils.js</file>
         <file>src/js/habits.js</file>
+        <file>src/js/HabitsLogic.js</file>
+        <file>src/js/Storage.js</file>
+        <file>src/js/Scroll.js</file>
     </qresource>
 </RCC>

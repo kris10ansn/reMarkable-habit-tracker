@@ -2,6 +2,7 @@ import QtQuick 2.15
 import "." as App
 import "components" as App
 import "js/DateUtils.js" as DateUtils
+import "js/Scroll.js" as Scroll
 
 Rectangle {
     id: root
@@ -34,23 +35,13 @@ Rectangle {
         property bool editing: false
         property int pendingDeleteIndex: -1
 
+        property int step: App.Theme.boxSize + App.Theme.boxSpacing
         property int viewportWidth: width - 2 * App.Theme.margin - App.Theme.habitsWidth - App.Theme.labelGap - 2 * App.Theme.buttonWidth - 2 * App.Theme.buttonGap
         property int contentWidth: daysInMonth * App.Theme.boxSize + (daysInMonth - 1) * App.Theme.boxSpacing
         property int maxScrollX: Math.max(0, contentWidth - viewportWidth)
         property int scrollX: 0
 
-        function clampScroll(x) {
-            return Math.max(0, Math.min(maxScrollX, x));
-        }
-        function scrollByBoxes(n) {
-            scrollX = clampScroll(scrollX + n * (App.Theme.boxSize + App.Theme.boxSpacing));
-        }
-        function scrollToDay(day) {
-            var target = (day - 1) * (App.Theme.boxSize + App.Theme.boxSpacing) - viewportWidth / 2 + App.Theme.boxSize / 2;
-            scrollX = clampScroll(target);
-        }
-
-        onViewportWidthChanged: scrollToDay(currentDay)
+        onViewportWidthChanged: scrollX = Scroll.centerOnDay(currentDay, viewportWidth, App.Theme.boxSize, App.Theme.boxSpacing, maxScrollX)
 
         // Hide keyboard if clicked outside of input
         MouseArea {
@@ -71,126 +62,47 @@ Rectangle {
             Row {
                 spacing: App.Theme.buttonGap
 
-                Column {
-                    spacing: App.Theme.rowSpacing
-
-                    Item {
-                        width: App.Theme.habitsWidth
-                        height: App.Theme.dayLabelHeight
-                    }
-
-                    Repeater {
-                        model: habitsStore.habits
-
-                        App.HabitRow {
-                            name: modelData.name
-                            negative: modelData.negative
-                            editing: landscape.editing
-                            canMoveUp: index > 0
-                            canMoveDown: index < habitsStore.habits.length - 1
-                            onRemoveClicked: landscape.pendingDeleteIndex = index
-                            onNegativeToggled: habitsStore.setNegative(index, !modelData.negative)
-                            onNameEdited: habitsStore.setName(index, newName)
-                            onMoveUpClicked: habitsStore.move(index, index - 1)
-                            onMoveDownClicked: habitsStore.move(index, index + 1)
-                        }
-                    }
-
-                    App.HabitAddRow {
-                        visible: landscape.editing
-                        onAddRequested: habitsStore.add(name, negative)
-                    }
+                App.HabitsColumn {
+                    habits: habitsStore.habits
+                    editing: landscape.editing
+                    onRemoveRequested: landscape.pendingDeleteIndex = index
+                    onNegativeToggled: habitsStore.setNegative(index, !habitsStore.habits[index].negative)
+                    onNameEdited: habitsStore.setName(index, newName)
+                    onMoveRequested: habitsStore.move(from, to)
+                    onAddRequested: habitsStore.add(name, negative)
                 }
 
-                Column {
-                    spacing: App.Theme.rowSpacing
-
-                    Item {
-                        width: App.Theme.buttonWidth
-                        height: App.Theme.dayLabelHeight
-                    }
-
-                    App.AppButton {
-                        width: App.Theme.buttonWidth
-                        height: gridStack.height - App.Theme.dayLabelHeight - App.Theme.rowSpacing
-                        text: "‹"
-                        fontSize: App.Theme.scrollFont
-                        fadeOpacity: landscape.scrollX > 0 ? 1.0 : App.Theme.fadedOpacity
-                        onClicked: landscape.scrollByBoxes(-7)
-                    }
+                App.SideScrollButton {
+                    text: "‹"
+                    fadeOpacity: landscape.scrollX > 0 ? 1.0 : App.Theme.fadedOpacity
+                    contentHeight: grid.contentHeight
+                    onClicked: landscape.scrollX = Scroll.scrollByBoxes(landscape.scrollX, -7, landscape.step, landscape.maxScrollX)
                 }
 
-                Item {
+                App.HabitsGrid {
+                    id: grid
                     width: landscape.viewportWidth
-                    height: gridStack.height
-                    clip: true
-
-                    Column {
-                        id: gridStack
-                        x: -landscape.scrollX
-                        spacing: App.Theme.rowSpacing
-
-                        App.DayLabelsRow {
-                            daysInMonth: landscape.daysInMonth
-                            currentDay: landscape.currentDay
-                        }
-
-                        Repeater {
-                            model: habitsStore.habits
-
-                            App.HabitGridRow {
-                                daysInMonth: landscape.daysInMonth
-                                currentDay: landscape.currentDay
-                                year: landscape.currentYear
-                                month: landscape.currentMonth
-                                negative: modelData.negative
-                                entries: modelData.entries || ({})
-                                onDayClicked: habitsStore.toggleEntry(index, DateUtils.dateKey(landscape.currentYear, landscape.currentMonth, day))
-                            }
-                        }
-
-                        Item {
-                            visible: landscape.editing
-                            width: 1
-                            height: App.Theme.boxSize
-                        }
-                    }
-
-                    // Draw vertical lines every 7 days
-                    Repeater {
-                        model: Math.floor((landscape.daysInMonth - 1) / 7)
-
-                        Rectangle {
-                            width: App.Theme.borderWidth
-                            height: gridStack.height
-                            x: -landscape.scrollX + (index + 1) * 7 * (App.Theme.boxSize + App.Theme.boxSpacing) - App.Theme.boxSpacing / 2 - width / 2
-                            color: App.Theme.fg
-                        }
-                    }
+                    height: contentHeight
+                    habits: habitsStore.habits
+                    daysInMonth: landscape.daysInMonth
+                    currentDay: landscape.currentDay
+                    year: landscape.currentYear
+                    month: landscape.currentMonth
+                    editing: landscape.editing
+                    scrollX: landscape.scrollX
+                    onEntryToggled: habitsStore.toggleEntry(index, dateKey)
                 }
 
-                Column {
-                    spacing: App.Theme.rowSpacing
-
-                    Item {
-                        width: App.Theme.buttonWidth
-                        height: App.Theme.dayLabelHeight
-                    }
-
-                    App.AppButton {
-                        width: App.Theme.buttonWidth
-                        height: gridStack.height - App.Theme.dayLabelHeight - App.Theme.rowSpacing
-                        text: "›"
-                        fontSize: App.Theme.scrollFont
-                        fadeOpacity: landscape.scrollX < landscape.maxScrollX ? 1.0 : App.Theme.fadedOpacity
-                        onClicked: landscape.scrollByBoxes(7)
-                    }
+                App.SideScrollButton {
+                    text: "›"
+                    fadeOpacity: landscape.scrollX < landscape.maxScrollX ? 1.0 : App.Theme.fadedOpacity
+                    contentHeight: grid.contentHeight
+                    onClicked: landscape.scrollX = Scroll.scrollByBoxes(landscape.scrollX, 7, landscape.step, landscape.maxScrollX)
                 }
             }
         }
 
         App.AppButton {
-            id: quitButton
             anchors.right: parent.right
             anchors.bottom: parent.bottom
             anchors.margins: App.Theme.margin

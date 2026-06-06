@@ -5,3 +5,6 @@ HabitAddRow 1.0 HabitAddRow.qml
 DayLabelsRow 1.0 DayLabelsRow.qml
 HabitGridRow 1.0 HabitGridRow.qml
 ConfirmDialog 1.0 ConfirmDialog.qml
+SideScrollButton 1.0 SideScrollButton.qml
+HabitsColumn 1.0 HabitsColumn.qml
+HabitsGrid 1.0 HabitsGrid.qml
