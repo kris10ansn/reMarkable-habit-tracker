@@ -14,6 +14,19 @@ Canvas {
     property date today: new Date()
     property bool lastRenderFailed: false
     property bool saveQueued: false
+    property string phase: ""
+    property int remainingSeconds: 0
+
+    readonly property string statusText: {
+        switch (canvas.phase) {
+        case "pending": return canvas.remainingSeconds > 0
+            ? "Saving sleep image in " + canvas.remainingSeconds + "s"
+            : "Saving sleep image..."
+        case "saving": return "Saving sleep image..."
+        case "saved": return "Sleep image saved"
+        default: return ""
+        }
+    }
 
     readonly property var drawConfig: ({
         margin: App.Theme.margin,
@@ -45,7 +58,18 @@ Canvas {
         id: debounceTimer
         interval: 3000
         repeat: false
-        onTriggered: canvas._beginAsyncRender()
+        onTriggered: {
+            statusTickTimer.stop()
+            canvas.phase = "saving"
+            canvas._beginAsyncRender()
+        }
+    }
+
+    Timer {
+        id: statusTickTimer
+        interval: 1000
+        repeat: true
+        onTriggered: canvas.remainingSeconds = Math.max(0, canvas.remainingSeconds - 1)
     }
 
     onPaint: SuspendDraw.draw(getContext("2d"), canvas.width, canvas.height, canvas.habits, canvas.today, canvas.drawConfig)
@@ -57,16 +81,22 @@ Canvas {
     }
 
     function scheduleRender() {
+        canvas.remainingSeconds = debounceTimer.interval / 1000
+        canvas.phase = "pending"
         debounceTimer.restart()
+        statusTickTimer.restart()
     }
 
     function renderNow() {
         debounceTimer.stop()
+        statusTickTimer.stop()
+        canvas.phase = "saving"
         _beginAsyncRender()
     }
 
     function flushNow() {
         debounceTimer.stop()
+        statusTickTimer.stop()
         SuspendDraw.draw(canvas.getContext("2d"), canvas.width, canvas.height, canvas.habits, canvas.today, canvas.drawConfig)
         canvas.saveQueued = false
         _save()
@@ -80,6 +110,7 @@ Canvas {
     function _save() {
         const ok = canvas.save(canvas.targetPath)
         canvas.lastRenderFailed = !ok
+        canvas.phase = ok ? "saved" : ""
         if (!ok) console.warn("SuspendCanvas: save failed for", canvas.targetPath)
     }
 }

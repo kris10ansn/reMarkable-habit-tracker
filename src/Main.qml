@@ -128,6 +128,7 @@ Rectangle {
         }
 
         App.AppButton {
+            id: editButton
             anchors.left: parent.left
             anchors.bottom: parent.bottom
             anchors.margins: App.Theme.margin
@@ -135,6 +136,16 @@ Rectangle {
             height: App.Theme.quitButtonHeight
             text: landscape.editing ? "Done" : "Edit"
             onClicked: landscape.editing = !landscape.editing
+        }
+
+        Text {
+            anchors.left: editButton.right
+            anchors.leftMargin: App.Theme.buttonGap
+            anchors.verticalCenter: editButton.verticalCenter
+            text: suspendCanvas.statusText
+            visible: text.length > 0
+            font.pixelSize: App.Theme.subtitleFont
+            color: App.Theme.fg
         }
 
         App.ConfirmDialog {
