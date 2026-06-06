@@ -12,11 +12,12 @@ Rectangle {
     signal close
     function unloading() {
         console.log("Habit Tracker unloading");
+        suspendCanvas.flushNow()
     }
 
     Component.onCompleted: {
         console.log("Habit Tracker loaded; size:", width, "x", height)
-        suspendCanvas.render()
+        suspendCanvas.renderNow()
     }
 
     App.HabitsStore {
@@ -30,7 +31,7 @@ Rectangle {
 
     Connections {
         target: habitsStore
-        function onSaved() { Qt.callLater(suspendCanvas.render) }
+        function onSaved() { suspendCanvas.scheduleRender() }
     }
 
     Item {

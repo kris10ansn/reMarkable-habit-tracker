@@ -8,13 +8,12 @@ Canvas {
 
     readonly property string targetPath: "/usr/share/remarkable/suspended.png"
     readonly property string backupPath: "/usr/share/remarkable/suspended.png.bak"
+    readonly property string markerPath: "/home/root/xovi/exthome/appload/habit-tracker/.backup-done"
 
     property var habits: []
     property date today: new Date()
     property bool lastRenderFailed: false
-    property bool rendering: false
-    property bool pendingRender: false
-    property bool saveAfterPaint: false
+    property bool saveQueued: false
 
     readonly property var drawConfig: ({
         margin: App.Theme.margin,
@@ -37,39 +36,50 @@ Canvas {
     height: 1872
     x: -2000
     visible: true
-    renderStrategy: Canvas.Threaded
+    renderStrategy: Canvas.Cooperative
     renderTarget: Canvas.Image
+
+    Timer {
+        id: debounceTimer
+        interval: 3000
+        repeat: false
+        onTriggered: canvas._beginAsyncRender()
+    }
 
     onPaint: SuspendDraw.draw(getContext("2d"), canvas.width, canvas.height, canvas.habits, canvas.today, canvas.drawConfig)
 
     onPainted: {
-        if (!canvas.saveAfterPaint) return
-        canvas.saveAfterPaint = false
-        Qt.callLater(canvas._saveNow)
+        if (!canvas.saveQueued) return
+        canvas.saveQueued = false
+        Qt.callLater(canvas._save)
     }
 
-    function _saveNow() {
+    function scheduleRender() {
+        debounceTimer.restart()
+    }
+
+    function renderNow() {
+        debounceTimer.stop()
+        _beginAsyncRender()
+    }
+
+    function flushNow() {
+        debounceTimer.stop()
+        SuspendRender.ensureBackup(canvas.targetPath, canvas.backupPath, canvas.markerPath)
+        SuspendDraw.draw(canvas.getContext("2d"), canvas.width, canvas.height, canvas.habits, canvas.today, canvas.drawConfig)
+        canvas.saveQueued = false
+        _save()
+    }
+
+    function _beginAsyncRender() {
+        SuspendRender.ensureBackup(canvas.targetPath, canvas.backupPath, canvas.markerPath)
+        canvas.saveQueued = true
+        canvas.requestPaint()
+    }
+
+    function _save() {
         const ok = canvas.save(canvas.targetPath)
-        canvas.rendering = false
         canvas.lastRenderFailed = !ok
         if (!ok) console.warn("SuspendCanvas: save failed for", canvas.targetPath)
-
-        if (canvas.pendingRender) {
-            canvas.pendingRender = false
-            canvas.render()
-        }
-    }
-
-    function render() {
-        if (canvas.rendering) {
-            canvas.pendingRender = true
-            return
-        }
-        canvas.rendering = true
-
-        SuspendRender.ensureBackup(canvas.targetPath, canvas.backupPath)
-
-        canvas.saveAfterPaint = true
-        canvas.requestPaint()
     }
 }
