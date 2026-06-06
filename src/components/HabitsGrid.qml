@@ -62,7 +62,7 @@ Item {
 
         Rectangle {
             width: App.Theme.borderWidth
-            height: stack.height
+            height: grid.height
             x: -grid.scrollX + (index + 1) * 7 * (grid.boxSize + grid.boxSpacing) - grid.boxSpacing / 2 - width / 2
             color: App.Theme.fg
         }
