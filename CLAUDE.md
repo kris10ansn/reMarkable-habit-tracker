@@ -63,6 +63,14 @@ Append to `<qresource>` in `application.qrc` **and** register the type in the di
 
 `Main.qml` does `import "." as App` and `import "components" as App`, so both `Theme` (in `src/`) and components (in `src/components/`) are reached via the `App.` prefix. **Files inside `src/components/` use `import ".." as App` — that prefix points at `src/`, NOT at `src/components/`.** From a component file, reference sibling components bare (`AppButton`, not `App.AppButton`); use `App.Theme` for the singleton. Getting this wrong fails at load with `Type App.X unavailable / No such file or directory` pointing at `src/X.qml`.
 
+## Code style
+
+- **Logic in JS, UI in QML.** Domain mutations, storage I/O, and math live in `src/js/*.js` as `.pragma library` modules; QML files stay presentational (bindings, layout, signal wiring). When a QML file grows inline `function` blocks doing real work, extract to JS.
+- **Pure-function logic layer.** Mutation helpers take the current value plus inputs, return a new value, and return `null` on invalid input. No in-place mutation, no exceptions for control flow.
+- **Stores are thin holders.** A store owns state + persistence wiring and delegates each method to the JS logic and storage modules. Don't grow business logic inside the store.
+- **Container components forward signals; they don't reach into stores.** Components expose signals up to the page that owns the store, which wires them to store methods. Keeps components reusable and dependencies one-way.
+- **Extract on duplication, not speculation.** Collapse near-identical blocks into a component.
+
 ## Keep README.md current
 
 When functionality changes (new features, removed features, changed UX, new commands), update `README.md` in the same change. The README is the user-facing description of what the app does and how to use it — it must not drift from the actual behavior.
@@ -72,14 +80,3 @@ When functionality changes (new features, removed features, changed UX, new comm
 - App lives at `/home/root/xovi/exthome/appload/habit-tracker/` after deploy.
 - Open apploader on the device by holding the middle button ~3 seconds.
 - The repo lives under `~/src/rust/` but is not a Rust project — naming is historical (prior attempts under `remarkable-app/` and `remarkable-helloworld-2/` were Rust). App code lives under `src/`: `Main.qml` + `Theme.qml` singleton at the top, reusable QML in `src/components/`, plain JS in `src/js/`. Each QML directory has a `qmldir`.
-
-## Maintaining this file
-
-As Claude learns your code style, QML patterns, and working preferences, update this document to capture non-obvious patterns or rules. Keep it lean (under 200 lines) — focus on:
-
-- Gotchas that have burned cycles
-- Style or architecture choices specific to this project
-- Constraints that affect design decisions
-- Anything that would surprise a future reader
-
-This stays checked in; future sessions will read it and adjust approach accordingly.
