@@ -1,8 +1,10 @@
 # reMarkable habit tracker
 
-A small habit tracker for the **reMarkable 1** e-ink tablet. It draws a landscape grid: one row per habit, one column per day of the current month, with today's column highlighted. No syncing, no accounts, no backend — just a QML scene rendered on the device.
+A small habit tracker for the **reMarkable 1** e-ink tablet. It draws a landscape grid: one row per habit, one column per day of the current month, with today's column highlighted. No syncing, no accounts, no backend — just a QML scene rendered on the device. The app also paints a copy of the grid onto the tablet's **sleep screen** so today's habits are visible when the device is suspended.
 
 Tap a box to cycle its state. **Positive habits** cycle empty → X → O → empty (X = done, O = explicitly not done). **Negative habits** start with X (treated as the default "didn't slip up") and toggle to O when you mark a slip. For negative habits, future days are rendered muted and the habit name is suffixed with `(−)` to mark it as negative at a glance. The habit list and all marks are persisted to a JSON file on the device.
+
+When the month is wider than the screen, the `‹` and `›` buttons either side of the grid scroll a week at a time; the view opens centered on today.
 
 ## What it looks like
 
@@ -18,6 +20,15 @@ Journal                 ▢ ▢ ▢ ▢ ▣ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ 
 
                                             [ Edit ]  [ Quit ]
 ```
+
+## Sleep screen
+
+The reMarkable shows an image when it suspends. This app overwrites it with a rendering of today's grid, so the habits are the first thing visible when you wake the device. The image is drawn off-screen on a Qt `Canvas` and saved as a PNG to `/usr/share/remarkable/suspended.png`.
+
+- The original `suspended.png` is backed up to `suspended.png.bak` once on first launch — `make remove` does **not** restore it; copy it back manually if you want the stock image.
+- Re-renders are debounced (~3s) and only fire when the visible state actually changes. A small status line next to **Edit** shows `Saving sleep image in Ns` while pending and `Sleep image saved` once done. If `(!) sleep image render failed` appears under the title, the PNG write failed (usually a permissions issue under `/usr/share/remarkable/`).
+- Per-habit `Z` toggle in edit mode hides a habit from the sleep image only — it still shows in the app. `O` marks and future days are omitted from the sleep image; only today's relevant `X`'s are drawn.
+- On quit, the latest state is flushed synchronously so the sleep screen never lags a tap behind.
 
 ## How it runs (and why the stack looks the way it does)
 
@@ -88,7 +99,7 @@ On the device, hold the middle button ~3 seconds to open apploader. The "reMarka
 
 ## Customizing the habits
 
-Tap **Edit** (bottom-right, next to **Quit**) to enter edit mode. Each row gains `↑`/`↓` buttons to reorder it, a `×` to delete it, a `−` toggle to mark the habit as negative (tracks slips rather than wins), a `Z` toggle (on by default) that controls whether the habit appears on the sleep screen, and the habit name becomes editable. An input row appears at the bottom of the habit list — type a name and tap **+** (or press Enter) to add. Tap **Done** to leave edit mode.
+Tap **Edit** (bottom-right, next to **Quit**) to enter edit mode. Each row gains `↑`/`↓` buttons to reorder it, a `×` to delete it, a `−` toggle to mark the habit as negative (tracks slips rather than wins), a `Z` toggle to hide/show it on the sleep screen (shown by default), and the habit name becomes editable. An input row appears at the bottom of the habit list — type a name and tap **+** (or press Enter) to add. Tap **Done** to leave edit mode.
 
 The list is persisted to `habits.json` next to the app on the device (`/home/root/xovi/exthome/appload/habit-tracker/habits.json`). On first launch the file is seeded from the defaults in `src/js/habits.js`. To wipe back to defaults, delete that file on the device and relaunch.
 
