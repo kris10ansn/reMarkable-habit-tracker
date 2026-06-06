@@ -96,8 +96,7 @@ Row {
 
     Item {
         id: nameSlot
-        width: habitRow.width
-               - (habitRow.editing ? 3 * (App.Theme.deleteButtonSize + habitRow.spacing) : 0)
+        width: habitRow.width - (habitRow.editing ? 3 * (App.Theme.deleteButtonSize + habitRow.spacing) : 0)
         height: habitRow.height
 
         Text {

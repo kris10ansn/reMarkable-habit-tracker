@@ -12,22 +12,23 @@ Row {
     spacing: App.Theme.boxSpacing
 
     onVisibleChanged: if (!visible) {
-        input.focus = false
-        Qt.inputMethod.hide()
-        addRow.negative = false
+        input.focus = false;
+        Qt.inputMethod.hide();
+        addRow.negative = false;
     }
 
     function submit() {
-        if (!input.text.trim()) return;
+        if (!input.text.trim()) {
+            return;
+        }
+
         addRow.addRequested(input.text, addRow.negative);
         input.text = "";
         addRow.negative = false;
     }
 
     Rectangle {
-        width: addRow.width
-               - addButton.width - addRow.spacing
-               - negativeButton.width - addRow.spacing
+        width: addRow.width - addButton.width - addRow.spacing - negativeButton.width - addRow.spacing
         height: addRow.height
         color: App.Theme.bg
         border.color: App.Theme.fg
