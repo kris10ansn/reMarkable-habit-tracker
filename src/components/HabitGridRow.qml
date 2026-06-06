@@ -32,7 +32,10 @@ Row {
             readonly property int day: index + 1
             readonly property bool isFuture: day > gridRow.currentDay
             readonly property string entry: (gridRow.entries || {})[DateUtils.dateKey(gridRow.year, gridRow.month, day)] || ""
-            readonly property string mark: entry === "x" ? "X" : entry === "o" ? "O" : gridRow.negative ? "X" : ""
+            readonly property string mark: entry === "x" ? "X"
+                                         : entry === "o" ? "O"
+                                         : gridRow.negative && !isFuture ? "X"
+                                         : ""
             readonly property bool faded: mark === "O" || isFuture
 
             Rectangle {
