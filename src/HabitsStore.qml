@@ -19,7 +19,13 @@ QtObject {
             habits = data
             return
         }
+
         habits = DefaultHabits.habits.slice()
+
+        if (Storage.isCorrupt(data)) {
+            console.warn("HabitsStore: refusing to overwrite corrupt file at", filePath, "- using defaults in memory only")
+            return
+        }
         save()
     }
 

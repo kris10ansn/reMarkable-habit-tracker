@@ -1,3 +1,6 @@
+const MISSING = "missing";
+const CORRUPT = "corrupt";
+
 function readJson(path) {
     try {
         const xhr = new XMLHttpRequest();
@@ -5,13 +8,23 @@ function readJson(path) {
         xhr.open("GET", `file://${path}`, false);
         xhr.send();
 
-        const ok = (xhr.status === 200 || xhr.status === 0) && xhr.responseText;
-        return ok ? JSON.parse(xhr.responseText) : null;
+        const ok = xhr.status === 200 || xhr.status === 0;
+        if (!ok || !xhr.responseText) return MISSING;
+
+        try {
+            return JSON.parse(xhr.responseText);
+        } catch (e) {
+            console.warn("Storage: corrupt JSON at", path, "-", e);
+            return CORRUPT;
+        }
     } catch (e) {
         console.log("Storage: could not read", path, "-", e);
-        return null;
+        return MISSING;
     }
 }
+
+function isMissing(result) { return result === MISSING; }
+function isCorrupt(result) { return result === CORRUPT; }
 
 function writeJson(path, value) {
     try {
