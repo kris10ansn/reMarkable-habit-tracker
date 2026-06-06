@@ -1,7 +1,5 @@
 .import "DateUtils.js" as DateUtils
 
-const fadedOpacity = 0.3
-
 function draw(ctx, canvasWidth, canvasHeight, habits, today, cfg) {
     ctx.fillStyle = cfg.bg;
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
@@ -104,15 +102,13 @@ const drawHabitCells = (ctx, x, y, habit, daysIn, currentDay, year, month, cfg) 
         if (d > currentDay) continue;
 
         const entry = entries[DateUtils.dateKey(year, month, d)] || "";
-        const mark = entry === "x" ? "X" : entry === "o" ? "O" : habit.negative ? "X" : "";
+        const mark = entry === "x" || (habit.negative && entry !== "o") ? "X" : "";
         if (!mark) continue;
 
-        ctx.globalAlpha = mark === "O" ? fadedOpacity : 1.0;
         ctx.fillStyle = cfg.fg;
         ctx.font = `bold ${cfg.boxSize * 0.7}px sans-serif`;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.fillText(mark, cellX + cfg.boxSize / 2, y + cfg.boxSize / 2);
-        ctx.globalAlpha = 1.0;
     }
 };
