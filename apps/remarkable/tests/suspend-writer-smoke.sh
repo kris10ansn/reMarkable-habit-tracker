@@ -95,6 +95,13 @@ expect_exit "refusesAPreMigrationRoster" 2 "$status"
 status=$(render stale-month.png --roster "$FIXTURES/roster.json" --month "$FIXTURES/2026-08-pre-migration.json")
 expect_exit "refusesAPreMigrationMonth" 2 "$status"
 
+# --- a roster still spelling hideFromSleep is refused, not drawn wrong -------------------------------
+
+# An old-spelling roster has no `isPrivate` key; rendering it as `isPrivate: false` would put a
+# private habit on the lock screen, so this must exit 2 the same as the other pre-migration shapes.
+status=$(render stale-private.png --roster "$FIXTURES/roster-hide-from-sleep.json")
+expect_exit "refusesARosterStillSpellingHideFromSleep" 2 "$status"
+
 # --- report ------------------------------------------------------------------------------------------
 
 if [ "$failures" -ne 0 ]; then
@@ -102,4 +109,4 @@ if [ "$failures" -ne 0 ]; then
     exit 1
 fi
 
-echo "Totals: 8 passed, 0 failed"
+echo "Totals: 9 passed, 0 failed"

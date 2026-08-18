@@ -133,7 +133,7 @@ habits trail the alive ones:
             "id": "<habitId>",
             "name": "Read",
             "polarity": "Positive",
-            "hideFromSleep": false,
+            "isPrivate": false,
             "createdAt": 1782148800000,
             "editedAt": 1782148800000,
             "deletedAt": null
@@ -144,7 +144,9 @@ habits trail the alive ones:
 
 - `polarity` — `"Positive"` or `"Negative"`. A negative habit renders every non-future day as X
   except the ones it slipped on (`"o"`).
-- `hideFromSleep` — when `true`, the habit is omitted from the suspend image.
+- `isPrivate` — when `true`, the habit is omitted from the suspend image, regardless of the
+  device-local "show private habits" setting (that setting only reveals private habits on the main
+  grid, never on suspend).
 - `deletedAt` — non-null marks a tombstone; those rows never render.
 
 **`YYYY-MM.json`** — one month's entries as flat `(habitId, date)` rows. `outcome` is `"x"` or
@@ -168,11 +170,12 @@ habits trail the alive ones:
 Rows whose `habitId` is absent from the roster are ignored (orphans never render), matching the
 app's fold-by-id.
 
-**Older shapes are refused, not rendered.** A roster whose habits have no `polarity` or no
-`editedAt`, or a month whose `entries` is an object rather than an array or whose rows still spell
-the edit-time `updatedAt`, exits **2** and names the file — drawing it would
-produce a blank or wrong grid that reads as "no marks yet". Convert a copy with
-`scripts/migrate-edited-at.mjs` first; see
+**Older shapes are refused, not rendered.** A roster whose habits have no `polarity`, no
+`editedAt`, or no `isPrivate` (still spelling the old device-local `hideFromSleep`, or predating it
+entirely), or a month whose `entries` is an object rather than an array or whose rows still spell
+the edit-time `updatedAt`, exits **2** and names the file — drawing it would produce a blank or
+wrong grid that reads as "no marks yet", or worse, put a private habit on the lock screen. Convert a
+copy with `scripts/migrate-edited-at.mjs` and/or `scripts/migrate-is-private.mjs` first; see
 [ADR 0006](../../docs/adr/0006-external-one-shot-migrations.md) and
 [ADR 0007](../../docs/adr/0007-edited-at-timestamp-name.md).
 

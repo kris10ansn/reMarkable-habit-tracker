@@ -5,22 +5,27 @@ Item {
     id: settingsPage
 
     property bool suspendImageEnabled: false
+    property bool showPrivateHabits: false
     property string serverUrl: ""
     property string syncStatusText: ""
 
     signal applyRequested(bool value)
+    signal showPrivateHabitsApplied(bool value)
     signal serverUrlApplied(string url)
     signal syncNowRequested
     signal backRequested
 
     property bool staged: false
+    property bool stagedShowPrivate: false
     property string stagedUrl: ""
     readonly property bool suspendImageDirty: staged !== suspendImageEnabled
+    readonly property bool showPrivateDirty: stagedShowPrivate !== showPrivateHabits
     readonly property bool urlDirty: stagedUrl.trim() !== serverUrl
-    readonly property bool dirty: suspendImageDirty || urlDirty
+    readonly property bool dirty: suspendImageDirty || showPrivateDirty || urlDirty
 
     function _resync() {
         settingsPage.staged = settingsPage.suspendImageEnabled;
+        settingsPage.stagedShowPrivate = settingsPage.showPrivateHabits;
         settingsPage.stagedUrl = settingsPage.serverUrl;
     }
 
@@ -30,6 +35,7 @@ Item {
     // A committed change lands back here (the store properties follow), so re-sync the staged
     // values — Done becomes idle and dirty clears.
     onSuspendImageEnabledChanged: settingsPage._resync()
+    onShowPrivateHabitsChanged: settingsPage._resync()
     onServerUrlChanged: settingsPage._resync()
 
     // Lowest sibling: taps on empty space fall through to here and drop input focus,
@@ -68,6 +74,23 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 value: settingsPage.staged
                 onToggled: settingsPage.staged = value
+            }
+        }
+
+        Row {
+            spacing: App.Theme.buttonGap
+
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: "Show private habits"
+                font.pixelSize: App.Theme.labelFont
+                color: App.Theme.fg
+            }
+
+            SegmentedToggle {
+                anchors.verticalCenter: parent.verticalCenter
+                value: settingsPage.stagedShowPrivate
+                onToggled: settingsPage.stagedShowPrivate = value
             }
         }
 
@@ -156,6 +179,9 @@ Item {
     function _commit() {
         if (settingsPage.suspendImageDirty) {
             settingsPage.applyRequested(settingsPage.staged);
+        }
+        if (settingsPage.showPrivateDirty) {
+            settingsPage.showPrivateHabitsApplied(settingsPage.stagedShowPrivate);
         }
         if (settingsPage.urlDirty) {
             settingsPage.serverUrlApplied(settingsPage.stagedUrl.trim());

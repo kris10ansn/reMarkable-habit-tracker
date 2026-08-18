@@ -164,6 +164,26 @@ TestCase {
         verify(store.saveError.indexOf("migrated") !== -1, "an unrecognised shape should say so");
     }
 
+    // A roster still spelling the flag hideFromSleep (pre-migration) has no isPrivate field, so
+    // _isRosterRow's typeof check rejects it — folding it in would silently render private habits
+    // publicly and then drop the flags for good on the next save.
+    function test_refusesARosterStillSpellingHideFromSleep() {
+        const year = 2026;
+        const month = 8;
+        const stale = { habits: [{ id: "a", name: "Alpha", polarity: "Positive", hideFromSleep: true, createdAt: 1750000000000, editedAt: 1750000000000 }] };
+        writeAndSettle(rosterPath(workingDir), stale);
+
+        makeStore(workingDir, year, month);
+
+        verify(store.hasUnreadableData, "a roster still spelling hideFromSleep must not be readable");
+        verify(store._roster.isUnwritable);
+        compare(store.habits.count, 0);
+
+        wait(300);
+        const onDisk = Storage.readJson(rosterPath(workingDir));
+        compare(onDisk.habits[0].hideFromSleep, true, "the refused file must never be overwritten");
+    }
+
     function test_refusesAMonthFileThisVersionCannotRead() {
         const year = 2026;
         const month = 4;
@@ -411,7 +431,7 @@ TestCase {
         [-1, 1, 99].forEach(index => {
             store.remove(index);
             store.togglePolarity(index);
-            store.toggleHideFromSleep(index);
+            store.togglePrivate(index);
             store.setName(index, "Nope");
             store.toggleEntry(index, "2025-10-01");
         });
@@ -432,29 +452,46 @@ TestCase {
         verify(store.habits.get(0).editedAt > 1750000000000);
     }
 
+    // Sync merges habits whole-row by editedAt last-write-wins, so a privacy flip that does not
+    // restamp editedAt would always lose to the server's copy.
+    function test_togglePrivateFlipsAndRestamps() {
+        writeAndSettle(rosterPath(workingDir), { habits: [Fixtures.rosterRow({ id: "a", isPrivate: false })] });
+
+        makeStore(workingDir, 2025, 0);
+        const before = store.habits.get(0).editedAt;
+
+        store.togglePrivate(0);
+
+        compare(store.habits.get(0).isPrivate, true);
+        verify(store.habits.get(0).editedAt > before);
+    }
+
     // --- applySynced -----------------------------------------------------------------------------
 
-    // hideFromSleep is the one device-local field the wire has no room for, so it is carried over
-    // from the current model rather than lost on every sync.
-    function test_applySyncedCarriesHideFromSleep() {
+    // isPrivate is backend-owned now, so the response's copy always wins — a local flag no longer
+    // survives a sync the server disagrees with.
+    function test_applySyncedTakesIsPrivateFromWire() {
         writeAndSettle(rosterPath(workingDir), {
-            habits: [Fixtures.rosterRow({ id: "a", hideFromSleep: true }), Fixtures.rosterRow({ id: "b" })]
+            habits: [Fixtures.rosterRow({ id: "a", isPrivate: true }), Fixtures.rosterRow({ id: "b" })]
         });
 
         makeStore(workingDir, 2025, 11);
 
         const applied = store.applySynced([
-            { id: "b", name: "Beta", polarity: "Positive", createdAt: 1, editedAt: 2 },
-            { id: "a", name: "Alpha", polarity: "Negative", createdAt: 3, editedAt: 4 }
+            { id: "b", name: "Beta", polarity: "Positive", isPrivate: true, createdAt: 1, editedAt: 2 },
+            { id: "a", name: "Alpha", polarity: "Negative", isPrivate: false, createdAt: 3, editedAt: 4 }
         ], {});
 
         verify(applied);
         compare(store.habits.count, 2);
         compare(store.habits.get(0).id, "b", "the server's order wins");
         compare(store.habits.get(1).id, "a");
-        compare(store.habits.get(1).hideFromSleep, true);
-        compare(store.habits.get(0).hideFromSleep, false);
+        compare(store.habits.get(1).isPrivate, false, "the wire's value wins over the local flag");
+        compare(store.habits.get(0).isPrivate, true);
         compare(store.habits.get(1).polarity, "Negative", "everything else comes back authoritative");
+
+        // As above: let the immediate write land before the shared roster.json is touched again.
+        wait(300);
     }
 
     function test_applySyncedReplacesTheViewedMonthsEntries() {
@@ -470,12 +507,16 @@ TestCase {
         compare(Object.keys(store.habits.get(0).entriesByDate).length, 1);
 
         store.applySynced(
-            [{ id: "a", name: "Alpha", polarity: "Positive", createdAt: 1, editedAt: 2 }],
+            [{ id: "a", name: "Alpha", polarity: "Positive", isPrivate: false, createdAt: 1, editedAt: 2 }],
             { "a": { "2024-01-09": Fixtures.entryRow({ habitId: "a", date: "2024-01-09", outcome: Entries.O }) } });
 
         compare(Object.keys(store.habits.get(0).entriesByDate).length, 1);
         compare(store.habits.get(0).entriesByDate["2024-01-09"].outcome, Entries.O);
         compare(store.habits.get(0).entriesByDate["2024-01-01"], undefined);
+
+        // applySynced writes both files immediately (not debounced); roster.json is shared across
+        // every test in this suite, so a later test's read must not race this one's landing write.
+        wait(300);
     }
 
     function test_applySyncedClearsPushedTombstones() {
@@ -486,9 +527,12 @@ TestCase {
         makeStore(workingDir, 2024, 1);
         compare(store.habitTombstones.length, 1);
 
-        store.applySynced([{ id: "a", name: "Alpha", polarity: "Positive", createdAt: 1, editedAt: 2 }], {});
+        store.applySynced([{ id: "a", name: "Alpha", polarity: "Positive", isPrivate: false, createdAt: 1, editedAt: 2 }], {});
 
         compare(store.habitTombstones.length, 0);
+
+        // As above: let the immediate write land before the shared roster.json is touched again.
+        wait(300);
     }
 
     // Validate before writing, not after: an older backend whose response omits a field this
@@ -508,5 +552,27 @@ TestCase {
         wait(300);
         const onDisk = Storage.readJson(rosterPath(workingDir));
         compare(onDisk.habits[0].id, "a");
+    }
+
+    // An older backend's response has no isPrivate field at all — the same _isRosterRow guard must
+    // refuse it rather than fold the row in with the flag defaulted to false.
+    function test_applySyncedRefusesAResponseMissingIsPrivate() {
+        writeAndSettle(rosterPath(workingDir), { habits: [Fixtures.rosterRow({ id: "a", name: "Alpha" })] });
+
+        // A prior test's applySynced writes both files immediately (not debounced); give that a
+        // moment to land so it cannot race this store's read of the shared roster.json.
+        wait(300);
+
+        makeStore(workingDir, 2024, 3);
+
+        const applied = store.applySynced([{ id: "a", name: "Alpha Updated", polarity: "Negative", createdAt: 1, editedAt: 2 }], {});
+
+        compare(applied, false);
+        compare(store.habits.count, 1);
+        compare(store.habits.get(0).name, "Alpha", "nothing may be touched when the response is refused");
+
+        wait(300);
+        const onDisk = Storage.readJson(rosterPath(workingDir));
+        compare(onDisk.habits[0].name, "Alpha");
     }
 }

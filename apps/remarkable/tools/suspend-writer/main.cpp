@@ -139,9 +139,9 @@ static QString readFile(const QString &path) {
     return QTextStream(&file).readAll();
 }
 
-static bool refuse(const QString &path, const QString &why) {
+static bool refuse(const QString &path, const QString &why, const QString &script = "scripts/migrate-edited-at.mjs") {
     qWarning().noquote() << path << "is in an older storage shape (" + why + ")."
-                         << "Run scripts/migrate-edited-at.mjs against a copy first"
+                         << "Run" << script << "against a copy first"
                          << "— see docs/adr/0006-external-one-shot-migrations.md.";
     return true;
 }
@@ -159,6 +159,12 @@ static bool refusesShape(const QString &rosterJson, const QString &rosterPath,
             return refuse(rosterPath, "a habit has no `polarity`");
         if (!habit.toObject().contains("editedAt"))
             return refuse(rosterPath, "a habit still spells its edit-time `updatedAt`");
+        // A habit without `isPrivate` still spells the old device-local `hideFromSleep` (or
+        // predates it entirely). Rendering it as `isPrivate: false` would put a private habit on
+        // the lock screen, so refuse rather than guess.
+        if (!habit.toObject().contains("isPrivate"))
+            return refuse(rosterPath, "a habit still spells its private flag `hideFromSleep`",
+                          "scripts/migrate-is-private.mjs");
     }
 
     const QJsonValue entries =
@@ -269,7 +275,7 @@ int main(int argc, char *argv[]) {
 
     // Join the month's entry rows onto the roster by habit id — the one step HabitsStore does that
     // has no module of its own — then hand that to the app's own projection through a stand-in for
-    // the QML ListModel it reads. Which habits and marks render (tombstones, hidden habits, glyph
+    // the QML ListModel it reads. Which habits and marks render (tombstones, private habits, glyph
     // choice) stays in HabitsModel and Entries, so a storage change lands here or nowhere rather
     // than silently drifting in a copy.
     const QString data =
@@ -283,7 +289,7 @@ int main(int argc, char *argv[]) {
         "var rosterModel = { count: alive.length, get: function(i) {"
         "  var habit = alive[i];"
         "  return { name: habit.name, polarity: habit.polarity,"
-        "    hideFromSleep: !!habit.hideFromSleep,"
+        "    isPrivate: !!habit.isPrivate,"
         "    entriesByDate: entriesByHabitId[habit.id] || {} };"
         "} };"
         "var habits = HabitsModel.toSuspendHabits(rosterModel);";

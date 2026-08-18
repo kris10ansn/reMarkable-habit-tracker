@@ -2,7 +2,8 @@
 
 Status: accepted; its read-tolerance consequence superseded by
 [ADR 0006](0006-external-one-shot-migrations.md), its timestamp naming by
-[ADR 0007](0007-edited-at-timestamp-name.md)
+[ADR 0007](0007-edited-at-timestamp-name.md), its device-local-field consequence by
+[ADR 0008](0008-private-habits.md)
 
 Amends [ADR 0002](0002-month-partitioned-habit-storage.md) — the _shape_ inside a month file, not
 its partitioning.
@@ -114,3 +115,6 @@ reading is this client's domain vocabulary (root `CONTEXT.md`) and mapping it is
     > `applySynced` takes it from the response instead of preserving a local value — and a habit
     > arriving from another device keeps its real create-time rather than being stamped at sync.
     > `hideFromSleep` is now the only device-local field the wire has no room for.
+
+    > Also no longer true, per [ADR 0008](0008-private-habits.md): `hideFromSleep` became the synced
+    > `isPrivate` flag, so no habit field remains that the wire has no room for.

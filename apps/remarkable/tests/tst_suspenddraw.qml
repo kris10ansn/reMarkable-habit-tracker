@@ -12,7 +12,7 @@ TestCase {
 
     function habit(overrides) {
         return Object.assign(
-            { name: "Read 20 pages", polarity: "Positive", hideFromSleep: false, entries: {} },
+            { name: "Read 20 pages", polarity: "Positive", isPrivate: false, entries: {} },
             overrides || {});
     }
 
@@ -53,20 +53,20 @@ TestCase {
         verify(SuspendDraw.computeSignature(habits, today) !== SuspendDraw.computeSignature(habits, new Date(2027, 7, 9)));
     }
 
-    function test_signatureExcludesHiddenHabits() {
+    function test_signatureExcludesPrivateHabits() {
         const visibleOnly = SuspendDraw.computeSignature([habit({ name: "Shown" })], today);
-        const withHidden = SuspendDraw.computeSignature([
+        const withPrivate = SuspendDraw.computeSignature([
             habit({ name: "Shown" }),
-            habit({ name: "Hidden", hideFromSleep: true })
+            habit({ name: "Hidden", isPrivate: true })
         ], today);
 
-        compare(visibleOnly, withHidden);
+        compare(visibleOnly, withPrivate);
     }
 
-    // Hidden habits are excluded, so editing one must not trigger a redraw of an image it is not in.
-    function test_signatureIgnoresEditsToHiddenHabits() {
-        const before = SuspendDraw.computeSignature([habit({ hideFromSleep: true, entries: {} })], today);
-        const after = SuspendDraw.computeSignature([habit({ hideFromSleep: true, entries: { "2026-08-01": "x" } })], today);
+    // Private habits are excluded, so editing one must not trigger a redraw of an image it is not in.
+    function test_signatureIgnoresEditsToPrivateHabits() {
+        const before = SuspendDraw.computeSignature([habit({ isPrivate: true, entries: {} })], today);
+        const after = SuspendDraw.computeSignature([habit({ isPrivate: true, entries: { "2026-08-01": "x" } })], today);
 
         compare(before, after);
     }

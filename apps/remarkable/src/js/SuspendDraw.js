@@ -6,7 +6,7 @@ function computeSignature(habits, today) {
     const currentDay = today.getDate();
     const year = today.getFullYear();
     const month = today.getMonth();
-    const visible = habits.filter((h) => !h.hideFromSleep);
+    const visible = habits.filter((h) => !h.isPrivate);
 
     const parts = [`${year}-${month}-${currentDay}`];
 
@@ -57,7 +57,7 @@ const drawContent = (ctx, width, height, habits, today, cfg) => {
     drawDayLabels(ctx, gridX, y, daysIn, currentDay, cfg);
     y += cfg.dayLabelHeight + cfg.rowSpacing;
 
-    const visible = habits.filter((h) => !h.hideFromSleep);
+    const visible = habits.filter((h) => !h.isPrivate);
 
     for (let i = 0; i < visible.length; i++) {
         const habit = visible[i];

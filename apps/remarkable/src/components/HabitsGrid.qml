@@ -12,6 +12,7 @@ Item {
     property int year: 0
     property int month: 0
     property bool editing: false
+    property bool showPrivateHabits: false
     property int scrollX: 0
     property int scrollY: 0
     property real boxSize: App.Theme.boxSize
@@ -53,6 +54,7 @@ Item {
                 model: grid.habits
 
                 HabitGridRow {
+                    visible: grid.showPrivateHabits || !model.isPrivate
                     daysInMonth: grid.daysInMonth
                     highlightDay: grid.highlightDay
                     lastNonFutureDay: grid.lastNonFutureDay

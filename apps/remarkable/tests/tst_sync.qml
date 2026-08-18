@@ -43,14 +43,18 @@ TestCase {
         compare(request.habits[1].id, "b");
     }
 
-    // hideFromSleep is device-local — the wire has no room for it, and HabitsStore.applySynced
-    // re-attaches it from the model on the way back.
-    function test_buildRequestDropsDeviceLocalFields() {
-        const request = Sync.buildRequest([Fixtures.rosterRow({ hideFromSleep: true })], [], [], "2026-08");
+    // isPrivate is backend-owned now — it rides the wire like every other shared field, on both
+    // alive rows and tombstones.
+    function test_buildRequestCarriesIsPrivate() {
+        const roster = [Fixtures.rosterRow({ id: "a", isPrivate: true })];
+        const tombstones = [Fixtures.rosterRow({ id: "gone", isPrivate: true, deletedAt: 1750000005000, editedAt: 1750000005000 })];
 
-        compare(request.habits[0].hideFromSleep, undefined);
+        const request = Sync.buildRequest(roster, tombstones, [], "2026-08");
+
+        compare(request.habits[0].isPrivate, true);
         compare(request.habits[0].createdAt, 1750000000000);
         compare(request.habits[0].editedAt, 1750000000000);
+        compare(request.habits[1].isPrivate, true);
     }
 
     function test_buildRequestMarksAliveHabitsUndeleted() {
@@ -122,8 +126,8 @@ TestCase {
     function test_applyResponseFoldsTheRosterInServerOrder() {
         const response = {
             habits: [
-                { id: "b", name: "Second", polarity: "Negative", position: 0, createdAt: 1, editedAt: 2 },
-                { id: "a", name: "First", polarity: "Positive", position: 1, createdAt: 3, editedAt: 4 }
+                { id: "b", name: "Second", polarity: "Negative", isPrivate: true, position: 0, createdAt: 1, editedAt: 2 },
+                { id: "a", name: "First", polarity: "Positive", isPrivate: false, position: 1, createdAt: 3, editedAt: 4 }
             ],
             months: []
         };
@@ -135,6 +139,8 @@ TestCase {
         compare(applied.roster[1].id, "a");
         compare(applied.roster[0].polarity, "Negative");
         compare(applied.roster[0].editedAt, 2);
+        compare(applied.roster[0].isPrivate, true);
+        compare(applied.roster[1].isPrivate, false);
 
         // Order is the array itself; the wire's Position field is not carried into the model.
         compare(applied.roster[0].position, undefined);

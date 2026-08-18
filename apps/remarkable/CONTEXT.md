@@ -17,15 +17,26 @@ The full-screen image xochitl shows while the device sleeps. The app overwrites 
 current habit grid so the habits are the first thing the user sees on waking the device.
 _Avoid_: sleep screen, sleep image, lock screen, wallpaper, suspended.png.
 
-**Suspend visibility**:
-Per-habit toggle (the `Z` control) controlling whether a habit's row appears in the suspend
-image. A hidden habit still shows in the app.
-_Avoid_: hideFromSleep (code field name), sleep-screen visibility.
+**Private**:
+Per-habit toggle (`isPrivate` in code; the edit-mode `P` control) marking a habit hidden from
+glanceable surfaces. A private habit never appears in the suspend image, and is also hidden from
+the main grid — including edit mode — unless the device's **Show private habits** setting is on.
+The flag itself syncs like name or polarity; see the [backend glossary](../backend/CONTEXT.md)'s
+Private entry for the shared-intent-vs-presentation split.
+_Avoid_: hideFromSleep (the field's device-local predecessor), suspend visibility, hidden, sleep-
+screen visibility.
+
+**Show private habits**:
+The device-local, never-synced Settings toggle that reveals private habits on this device's grid
+and edit mode. It does not affect the suspend image — private habits stay off the suspend image
+regardless of this setting.
+_Avoid_: reveal setting, unhide toggle.
 
 **Suspend-image writing**:
 The app-wide setting for whether the app overwrites the suspend image at all. Opt-in: off by
 default, toggled on the Settings page. Enabling takes a suspend-image backup then starts
-drawing the grid; disabling restores the backup. While off, the `Z` controls are hidden.
+drawing the grid; disabling restores the backup. Private habits are excluded from the grid it
+draws regardless of this setting.
 _Avoid_: sleep-screen toggle, suspend mode.
 
 **Suspend-image backup**:
@@ -35,13 +46,14 @@ stock image.
 _Avoid_: marker, restore point.
 
 **Settings**:
-The app-wide preferences page, reached from the Settings button and left via Back/Done.
-Currently holds the single suspend-image writing toggle. Changes are staged and applied on Done.
+The app-wide preferences page, reached from the Settings button and left via Back/Done. Holds
+the suspend-image writing toggle and the Show private habits toggle. Changes are staged and
+applied on Done.
 _Avoid_: options, preferences pane, config screen.
 
 **Edit mode**:
 The state, toggled by Edit/Done, in which rows become editable — reorder, rename, delete,
-toggle polarity, toggle suspend visibility — and an empty add-row appears at the bottom.
+toggle polarity, toggle private — and an empty add-row appears at the bottom.
 
 **Current month**:
 The real calendar month (`new Date()`). It alone highlights today, drives the suspend image, and
@@ -69,7 +81,7 @@ visible save failure, never silent loss.
 _Avoid_: data folder, storage dir.
 
 **Roster**:
-The ordered list of habits with their config — id, name, polarity, suspend visibility, create-time,
+The ordered list of habits with their config — id, name, polarity, private flag, create-time,
 edit-time — and nothing about their entries. Array order is display order.
 _Avoid_: habit list, config.
 

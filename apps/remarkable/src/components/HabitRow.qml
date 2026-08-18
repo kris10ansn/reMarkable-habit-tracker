@@ -7,9 +7,8 @@ Row {
 
     property string name: ""
     property string polarity: Polarity.POSITIVE
-    property bool hideFromSleep: false
+    property bool isPrivate: false
     property bool editing: false
-    property bool suspendImageEnabled: false
     property bool canMoveUp: false
     property bool canMoveDown: false
 
@@ -17,7 +16,7 @@ Row {
 
     signal removeClicked
     signal polarityToggled
-    signal hideFromSleepToggled
+    signal privateToggled
     signal nameEdited(string newName)
     signal moveUpClicked
     signal moveDownClicked
@@ -62,9 +61,8 @@ Row {
 
     Item {
         id: nameSlot
-        // Edit controls flanking the name: ↑ ↓ × −, plus Z only when the
-        // suspend image is being written.
-        readonly property int editControls: habitRow.suspendImageEnabled ? 5 : 4
+        // Edit controls flanking the name: ↑ ↓ × − P.
+        readonly property int editControls: 5
         width: habitRow.width - (habitRow.editing ? editControls * (App.Theme.deleteButtonSize + habitRow.spacing) : 0)
         height: habitRow.height
 
@@ -120,13 +118,13 @@ Row {
     }
 
     AppButton {
-        id: hideFromSleepButton
+        id: privateButton
         width: App.Theme.deleteButtonSize
         height: App.Theme.deleteButtonSize
         anchors.verticalCenter: parent.verticalCenter
-        visible: habitRow.editing && habitRow.suspendImageEnabled
-        text: "Z"
-        active: !habitRow.hideFromSleep
-        onClicked: habitRow.hideFromSleepToggled()
+        visible: habitRow.editing
+        text: "P"
+        active: !habitRow.isPrivate
+        onClicked: habitRow.privateToggled()
     }
 }

@@ -1,6 +1,7 @@
 # 7. The stored timestamp is `editedAt`
 
-Status: accepted
+Status: accepted; its device-local-field consequence superseded by
+[ADR 0008](0008-private-habits.md)
 
 Supersedes the timestamp-naming consequence of
 [ADR 0005](0005-backend-shaped-entry-rows.md), which kept the field spelled `updatedAt`.
@@ -57,6 +58,9 @@ untouched in both directions.
 - The sync edge is one translation smaller. What remains there is the X/O ↔ Outcome mapping and the
   shapes the wire has no field for: `deletedAt` → the `deleted` flag, Position → the roster index,
   and the device-local `hideFromSleep` / `createdAt` that `applySynced` re-attaches.
+
+    > `hideFromSleep` no longer belongs in that list, per [ADR 0008](0008-private-habits.md): it
+    > became the synced `isPrivate` flag, so `applySynced` no longer re-attaches it locally.
 - **The device must be migrated before the new build runs**, with the app closed: `make backup`,
   then `node scripts/migrate-edited-at.mjs <backup> <out>`, then push `<out>` back (see the README's
   "Upgrading across a storage-format change"). An un-migrated file is refused and named in a modal,

@@ -12,10 +12,15 @@ JsonStore {
     // The backend this client syncs with. Empty = standalone (no sync attempts).
     property string serverUrl: ""
 
+    // Reveal private habits on the main grid. Device-local by design — privacy is
+    // per-surface, so it never syncs.
+    property bool showPrivateHabits: false
+
     serialize: function () {
         return {
             suspendImageEnabled: settingsStore.suspendImageEnabled,
-            serverUrl: settingsStore.serverUrl
+            serverUrl: settingsStore.serverUrl,
+            showPrivateHabits: settingsStore.showPrivateHabits
         };
     }
 
@@ -30,6 +35,18 @@ JsonStore {
         if (typeof data.serverUrl === "string") {
             settingsStore.serverUrl = data.serverUrl;
         }
+        if (typeof data.showPrivateHabits === "boolean") {
+            settingsStore.showPrivateHabits = data.showPrivateHabits;
+        }
+    }
+
+    // Settings write through immediately rather than on JsonStore's debounce — a change the
+    // user just committed should survive an immediate quit. But the settings commit applies
+    // every dirty field in one tick, and overlapping async writes to the same file interleave
+    // and corrupt it, so same-tick setter calls coalesce into a single write of the final
+    // state (Qt.callLater collapses repeated calls to the same function).
+    function _saveCoalesced() {
+        Qt.callLater(settingsStore._doSave);
     }
 
     function setSuspendImageEnabled(value) {
@@ -39,7 +56,17 @@ JsonStore {
         }
 
         settingsStore.suspendImageEnabled = next;
-        settingsStore._doSave();
+        settingsStore._saveCoalesced();
+    }
+
+    function setShowPrivateHabits(value) {
+        const next = !!value;
+        if (next === settingsStore.showPrivateHabits) {
+            return;
+        }
+
+        settingsStore.showPrivateHabits = next;
+        settingsStore._saveCoalesced();
     }
 
     function setServerUrl(value) {
@@ -49,6 +76,6 @@ JsonStore {
         }
 
         settingsStore.serverUrl = next;
-        settingsStore._doSave();
+        settingsStore._saveCoalesced();
     }
 }

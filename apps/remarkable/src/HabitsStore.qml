@@ -101,7 +101,7 @@ QtObject {
             id: habit.id,
             name: habit.name,
             polarity: habit.polarity,
-            hideFromSleep: !!habit.hideFromSleep,
+            isPrivate: !!habit.isPrivate,
             createdAt: habit.createdAt,
             editedAt: habit.editedAt,
             deletedAt: null,
@@ -117,7 +117,7 @@ QtObject {
             id: Ids.newId(),
             name: name,
             polarity: polarity,
-            hideFromSleep: false,
+            isPrivate: false,
             createdAt: createdAt,
             editedAt: createdAt,
             deletedAt: null,
@@ -131,8 +131,13 @@ QtObject {
     // Both files therefore test a field only the shape this version writes has. `editedAt` earns its
     // place in both: a row still spelling it `updatedAt` reads back as undefined, renders fine, and
     // then syncs as edit-time 0 — losing every merge and pulling the server's copy over real data.
+    // `isPrivate` earns its place the same way: a roster still spelling the flag `hideFromSleep`
+    // must be refused, not folded in with every flag false — folding it in would silently render
+    // private habits publicly and then drop the flags for good on the next save (the exact
+    // silent-overwrite ADR 0006 exists to prevent). This same guard runs on wire rows in
+    // applySynced, so a response from an older backend that has no `isPrivate` field is refused too.
     function _isRosterRow(habit) {
-        return !!habit && !!habit.id && !!habit.name && !!habit.polarity && !!habit.createdAt && !!habit.editedAt;
+        return !!habit && !!habit.id && !!habit.name && !!habit.polarity && !!habit.createdAt && !!habit.editedAt && typeof habit.isPrivate === "boolean";
     }
 
     function _isMonthRow(row) {
@@ -288,11 +293,14 @@ QtObject {
         _roster.scheduleSave();
     }
 
-    function toggleHideFromSleep(index) {
+    // Stamps editedAt like togglePolarity: sync merges habits whole-row by editedAt last-write-wins,
+    // so without the stamp a privacy flip would always lose to the server's copy.
+    function togglePrivate(index) {
         if (!_inBounds(index)) {
             return;
         }
-        habits.setProperty(index, "hideFromSleep", !habits.get(index).hideFromSleep);
+        habits.setProperty(index, "isPrivate", !habits.get(index).isPrivate);
+        habits.setProperty(index, "editedAt", Date.now());
         _roster.scheduleSave();
     }
 
@@ -324,20 +332,11 @@ QtObject {
     // files immediately. Returns false without touching anything if the server sent a habit this
     // version cannot store — the same `_isRosterRow` test the roster reader applies, run *before*
     // the save rather than after it. Without this an older backend (one whose response omits a
-    // field this version requires) would be written to roster.json and then refused on next
-    // launch, turning a version mismatch into an unreadable file.
+    // field this version requires, e.g. `isPrivate`) would be written to roster.json and then
+    // refused on next launch, turning a version mismatch into an unreadable file.
     function applySynced(roster, entriesByHabitId) {
         if (!(roster || []).every(store._isRosterRow)) {
             return false;
-        }
-
-        // hideFromSleep is the one device-local field the wire has no room for, so it is read off
-        // the current model before it is cleared and carried onto the new rows. Everything else,
-        // createdAt included, comes back authoritative from the server.
-        const hideFromSleepById = {};
-        for (let i = 0; i < habits.count; i++) {
-            const habit = habits.get(i);
-            hideFromSleepById[habit.id] = !!habit.hideFromSleep;
         }
 
         const items = (roster || []).map(habit => {
@@ -345,7 +344,7 @@ QtObject {
                     id: habit.id,
                     name: habit.name,
                     polarity: habit.polarity,
-                    hideFromSleep: !!hideFromSleepById[habit.id],
+                    isPrivate: !!habit.isPrivate,
                     createdAt: habit.createdAt,
                     editedAt: habit.editedAt,
                     entriesByDate: (entriesByHabitId || {})[habit.id] || ({})

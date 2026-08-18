@@ -2,10 +2,9 @@
 
 // Translation between the client's roster/month state and the backend sync wire format.
 // Pure functions only — the QML SyncStore does the I/O. Timestamps are epoch ms UTC.
-// The wire now spells every shared field exactly as this client stores it — polarity, createdAt,
-// editedAt, deletedAt alike — so what is left at this edge is small: the X/O <-> Outcome mapping
-// (a deliberate on-disk spelling, ADR 0005), Position as the roster index, and the device-local
-// fields the wire has no room for (HabitsStore.applySynced re-attaches hideFromSleep).
+// The wire spells every shared field exactly as this client stores it — polarity, isPrivate,
+// createdAt, editedAt, deletedAt alike — so what is left at this edge is small: the X/O <-> Outcome
+// mapping (a deliberate on-disk spelling, ADR 0005) and Position as the roster index.
 
 const SUCCESS = "Success";
 const FAILURE = "Failure";
@@ -21,6 +20,7 @@ function buildRequest(roster, tombstones, entryRows, monthKey) {
         id: habit.id,
         name: habit.name,
         polarity: habit.polarity,
+        isPrivate: !!habit.isPrivate,
         position: position,
         createdAt: habit.createdAt,
         editedAt: habit.editedAt,
@@ -32,6 +32,7 @@ function buildRequest(roster, tombstones, entryRows, monthKey) {
         id: tombstone.id,
         name: tombstone.name,
         polarity: tombstone.polarity,
+        isPrivate: !!tombstone.isPrivate,
         position: 0,
         createdAt: tombstone.createdAt,
         editedAt: tombstone.editedAt,
@@ -63,6 +64,7 @@ function applyResponse(response, monthKey) {
         id: habit.id,
         name: habit.name,
         polarity: habit.polarity,
+        isPrivate: !!habit.isPrivate,
         createdAt: habit.createdAt,
         editedAt: habit.editedAt,
     }));

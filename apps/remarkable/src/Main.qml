@@ -290,13 +290,13 @@ Rectangle {
                     App.HabitsColumn {
                         habits: habitsStore.habits
                         editing: landscape.editing
-                        suspendImageEnabled: settingsStore.suspendImageEnabled
+                        showPrivateHabits: settingsStore.showPrivateHabits
                         rowWidth: landscape.habitsRowWidth
                         viewportHeight: landscape.viewportHeight
                         scrollY: landscape.scrollY
                         onRemoveRequested: landscape.pendingDeleteIndex = index
                         onPolarityToggled: habitsStore.togglePolarity(index)
-                        onHideFromSleepToggled: habitsStore.toggleHideFromSleep(index)
+                        onPrivateToggled: habitsStore.togglePrivate(index)
                         onNameEdited: habitsStore.setName(index, newName)
                         onMoveRequested: habitsStore.move(from, to)
                         onAddRequested: habitsStore.add(name, polarity)
@@ -328,6 +328,7 @@ Rectangle {
                                 width: landscape.viewportWidth
                                 viewportHeight: landscape.viewportHeight
                                 habits: habitsStore.habits
+                                showPrivateHabits: settingsStore.showPrivateHabits
                                 daysInMonth: landscape.daysInMonth
                                 highlightDay: landscape.highlightDay
                                 lastNonFutureDay: landscape.lastNonFutureDay
@@ -399,9 +400,11 @@ Rectangle {
             anchors.fill: parent
             visible: landscape.currentView === "settings"
             suspendImageEnabled: settingsStore.suspendImageEnabled
+            showPrivateHabits: settingsStore.showPrivateHabits
             serverUrl: settingsStore.serverUrl
             syncStatusText: syncStore.statusText
             onApplyRequested: root.applySuspendSetting(value)
+            onShowPrivateHabitsApplied: settingsStore.setShowPrivateHabits(value)
             onServerUrlApplied: {
                 settingsStore.setServerUrl(url);
                 syncStore.syncNow();

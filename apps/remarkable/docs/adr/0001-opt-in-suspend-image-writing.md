@@ -2,6 +2,9 @@
 
 Status: accepted
 
+Amended by [ADR 0008](0008-private-habits.md): the per-habit control this ADR describes as hidden
+while the setting is off is now the always-visible Private toggle.
+
 ## Context
 
 The app overwrites the device suspend image (`/usr/share/remarkable/suspended.png`) with
@@ -26,6 +29,10 @@ exposed on a Settings page. Default **off**.
   signature (otherwise the dedup check would skip the re-render on a later enable).
 - All automatic render/save triggers are gated on `suspendImageEnabled`. While off, the
   per-habit `Z` (suspend visibility) controls are hidden.
+
+  > Superseded by [ADR 0008](0008-private-habits.md): suspend visibility became the synced
+  > Private flag, and its edit-mode toggle is no longer gated on this setting — it is always
+  > visible.
 
 ## Consequences
 

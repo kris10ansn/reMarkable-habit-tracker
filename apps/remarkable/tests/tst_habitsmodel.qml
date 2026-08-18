@@ -50,7 +50,7 @@ TestCase {
     function test_rosterRowNormalisesOptionalFields() {
         const row = HabitsModel.rosterRow({ id: "a", name: "A", polarity: "Positive", createdAt: 1, editedAt: 2 });
 
-        compare(row.hideFromSleep, false);
+        compare(row.isPrivate, false);
         compare(row.deletedAt, null);
     }
 
@@ -121,19 +121,19 @@ TestCase {
         compare(habits.length, 1);
         compare(habits[0].name, "Exercise");
         compare(habits[0].polarity, "Negative");
-        compare(habits[0].hideFromSleep, false);
+        compare(habits[0].isPrivate, false);
         compare(habits[0].entries["2026-08-01"], "o");
         compare(habits[0].entries["2026-08-02"], undefined);
     }
 
-    // Kept rather than filtered: SuspendDraw.js is what drops hidden habits, and computeSignature
+    // Kept rather than filtered: SuspendDraw.js is what drops private habits, and computeSignature
     // has to see the flag flip to know the image needs redrawing.
-    function test_toSuspendHabitsCarriesHideFromSleep() {
-        const model = Fixtures.fakeModel([Fixtures.habitRow({ hideFromSleep: true })]);
+    function test_toSuspendHabitsCarriesIsPrivate() {
+        const model = Fixtures.fakeModel([Fixtures.habitRow({ isPrivate: true })]);
 
         const habits = HabitsModel.toSuspendHabits(model);
 
         compare(habits.length, 1);
-        compare(habits[0].hideFromSleep, true);
+        compare(habits[0].isPrivate, true);
     }
 }

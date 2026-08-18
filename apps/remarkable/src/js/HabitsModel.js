@@ -13,7 +13,7 @@ function toSuspendHabits(model) {
         out.push({
             name: habit.name,
             polarity: habit.polarity,
-            hideFromSleep: !!habit.hideFromSleep,
+            isPrivate: !!habit.isPrivate,
             entries: Entries.outcomesByDate(habit.entriesByDate),
         });
     }
@@ -27,7 +27,7 @@ function rosterRow(habit) {
         id: habit.id,
         name: habit.name,
         polarity: habit.polarity,
-        hideFromSleep: !!habit.hideFromSleep,
+        isPrivate: !!habit.isPrivate,
         createdAt: habit.createdAt,
         editedAt: habit.editedAt,
         deletedAt: habit.deletedAt || null,

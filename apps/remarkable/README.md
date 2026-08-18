@@ -30,10 +30,11 @@ Journal                 ▢ ▢ ▢ ▢ ▣ ▢ ▢ ▢ ▢ ▢ …
 - **Two habit modes.**
     - _Positive_ habits cycle empty → X → O → empty. X = done, O = explicitly not done.
     - _Negative_ habits invert it: every day is implicitly X ("didn't slip up today"), tap to flip to O when you do slip. Future days render muted and the name carries a `(−)` suffix.
-- **Suspend-image overlay (opt-in).** Off by default; enable it on the **Settings** page. While on, the latest habit grid is the suspend image. Enabling backs up the original `suspended.png` first; disabling restores it. Per-habit `Z` toggles (shown in edit mode while the feature is on) hide individual rows from the suspend image (they still show in the app).
-- **Settings.** A small settings page (button next to **Quit**) with the suspend-image-writing `On` / `Off` toggle and a **Sync server** address field. Changes are staged and applied on **Done**, which returns to the grid and runs the backup/restore — its progress shows in the grid's status line. **Back** discards staged changes (with a confirmation if you've changed anything).
+- **Private habits.** Per-habit `P` toggles, always available in edit mode, mark a habit private. A private habit never appears on the suspend image, and it also drops out of the main grid — including edit mode — unless **Show private habits** is on in Settings. The private flag syncs across devices like a rename or reorder; the "show private habits on this device" setting stays local and never syncs.
+- **Suspend-image overlay (opt-in).** Off by default; enable it on the **Settings** page. While on, the latest habit grid is the suspend image, always excluding private habits. Enabling backs up the original `suspended.png` first; disabling restores it.
+- **Settings.** A small settings page (button next to **Quit**) with the suspend-image-writing `On` / `Off` toggle, a **Show private habits** `On` / `Off` toggle, and a **Sync server** address field. Changes are staged and applied on **Done**, which returns to the grid and runs the backup/restore — its progress shows in the grid's status line. **Back** discards staged changes (with a confirmation if you've changed anything).
 - **Optional offline-first sync.** Leave the **Sync server** blank and the app is fully local. Enter a server address and it syncs your roster and the month you're viewing with that server — on open, whenever you navigate to a month, a few seconds after edits, and via a **Sync now** button. Conflicts resolve last-write-wins per habit and per day; deletes propagate as tombstones. It's offline-tolerant: when the server is unreachable you keep working and a quiet status line (below the suspend status) counts the debounce down ("Syncing in 3s" → "Syncing…"), tracks the request as it runs ("Connecting…" → "Receiving…"), and then shows the outcome ("Synced to server" / "Sync failed: offline"). The endpoint is unauthenticated, so run it on a trusted network (home LAN / Tailscale / VPN), not the open internet.
-- **In-app editing.** Reorder, rename, delete, toggle positive/negative, toggle suspend visibility, add new habits — all from the device. No editing JSON by SSH.
+- **In-app editing.** Reorder, rename, delete, toggle positive/negative, toggle private, add new habits — all from the device. No editing JSON by SSH.
 - **Local persistence.** Habit data lives under a `data/` folder on the device: `roster.json` (the habit list + config) plus one `YYYY-MM.json` per month (that month's entries, one row per marked day); `sync.json` holds sync bookkeeping. App preferences stay in `settings.json`. A single tap rewrites only the current month, not all of history. Saves fail loudly — if `data/` is missing, a dialog says so rather than dropping your entries silently. The app reads exactly one storage format and refuses anything else: a file it can't read is never treated as empty, so nothing gets overwritten by the next tap. Format changes are handled by a script you run on your computer, not by the app (see [Upgrading across a storage-format change](#upgrading-across-a-storage-format-change)).
 
 ## Install
@@ -58,14 +59,14 @@ On the tablet, hold the middle button for ~3 seconds to open apploader, then tap
 
 - **Tap a cell** to cycle its state.
 - **`‹` / `›` beside the month title** move to the previous / next month; **Today** (appears once you're off the current month) jumps back. Editing works in any month, so you can backfill a month you missed.
-- **Edit** (bottom-left) enters edit mode. Each row gains `↑` / `↓` (reorder), `×` (delete with confirmation), `−` (toggle polarity), `Z` (toggle suspend visibility — only shown while suspend-image writing is on), and the name becomes a text input. An empty row at the bottom of the list takes a new habit name; tap `+` or press Enter to add.
+- **Edit** (bottom-left) enters edit mode. Each row gains `↑` / `↓` (reorder), `×` (delete with confirmation), `−` (toggle polarity), `P` (toggle private — always available), and the name becomes a text input. An empty row at the bottom of the list takes a new habit name; tap `+` or press Enter to add. With **Show private habits** off, a private row disappears from the list entirely (including here in edit mode) — reveal it first if you need to reorder or edit it, since reordering past a hidden row moves it without visibly moving anything.
 - **Done** leaves edit mode.
-- **Settings** (bottom-right, left of Quit) opens the settings page. Toggle suspend-image writing `On` / `Off`, and/or type a **Sync server** address (e.g. `http://192.168.1.50:5137`; blank = offline). **Done** applies and returns to the grid — enabling suspend writing backs up your current suspend image and starts drawing the grid there; disabling restores the backup; a non-blank server triggers a sync. **Sync now** forces an immediate sync. **Back** returns without applying.
+- **Settings** (bottom-right, left of Quit) opens the settings page. Toggle suspend-image writing `On` / `Off`, toggle **Show private habits** `On` / `Off`, and/or type a **Sync server** address (e.g. `http://192.168.1.50:5137`; blank = offline). **Done** applies and returns to the grid — enabling suspend writing backs up your current suspend image and starts drawing the grid there; disabling restores the backup; a non-blank server triggers a sync. **Sync now** forces an immediate sync. **Back** returns without applying.
 - **Quit** (bottom-right) unloads the app and restores the normal xochitl UI.
 
 State is saved under `/home/root/xovi/exthome/appload/habit-tracker/data/` — `roster.json` plus a `YYYY-MM.json` per month. First launch seeds the roster from the defaults in `src/js/habits.js`. The `data/` folder must exist (the deploy creates it); if it's missing, saves surface a visible error instead of failing silently. To reset, delete the files and relaunch.
 
-A habit is stored as `{ id, name, polarity, hideFromSleep, createdAt, editedAt, deletedAt }` and a month as `{ "month": "2026-07", "entries": [ { habitId, date, outcome, editedAt, deletedAt }, … ] }` — the same row shape the sync server speaks, so the only thing translated on the way out is the X/O mark, which the server calls `Success` / `Failure`. Files written in an older shape are refused, not converted: see [Upgrading across a storage-format change](#upgrading-across-a-storage-format-change).
+A habit is stored as `{ id, name, polarity, isPrivate, createdAt, editedAt, deletedAt }` and a month as `{ "month": "2026-07", "entries": [ { habitId, date, outcome, editedAt, deletedAt }, … ] }` — the same row shape the sync server speaks, so the only thing translated on the way out is the X/O mark, which the server calls `Success` / `Failure`. Files written in an older shape are refused, not converted: see [Upgrading across a storage-format change](#upgrading-across-a-storage-format-change).
 
 ## How it's built
 
@@ -188,6 +189,14 @@ make deploy
 
 Then reopen the app. If you get the order wrong, nothing is lost: the new build refuses files it
 can't read, blocks saves and sync, and tells you which file is the problem — fix it and reopen.
+
+**Current migration: private habits.** The habit-private-flag change (ADR 0008) ships
+`scripts/migrate-is-private.mjs`, which renames each roster row's `hideFromSleep` to `isPrivate` and
+leaves the month files untouched — run it as `<the-migration-script>.mjs` above. This migration also
+**requires rebuilding and redeploying `tools/suspend-writer`** (`make suspend-writer-device` then
+`make suspend-writer-deploy`) before you reopen the app: an un-rebuilt suspend-writer binary reads the
+migrated roster's absent `hideFromSleep` as false and would draw private habits on the lock screen. Do
+this before the final `make deploy` above, not after.
 
 ## Repo layout
 
