@@ -1,9 +1,0 @@
-<RCC>
-    <qresource>
-        <file>src/Main.qml</file>
-        <file>src/qmldir</file>
-        <file>src/Btn.qml</file>
-        <file>src/SingleBoxScene.qml</file>
-        <file>src/GridScene.qml</file>
-    </qresource>
-</RCC>

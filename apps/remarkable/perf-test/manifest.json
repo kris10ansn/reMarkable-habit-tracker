@@ -1,8 +1,0 @@
-{
-    "id": "habit-tracker-perftest",
-    "name": "Habit Tracker Perf Test",
-    "entry": "/src/Main.qml",
-    "loadsBackend": false,
-    "canHaveMultipleFrontends": false,
-    "supportsScaling": true
-}
