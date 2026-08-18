@@ -39,7 +39,7 @@ export function useSync() {
             const now = new Date();
             const currentMonthKey =
                 variables.currentMonthKey ??
-                monthKey(now.getFullYear(), now.getMonth() + 1);
+                monthKey(now.getFullYear(), now.getMonth());
 
             const syncStartedAt = Date.now();
             const monthKeys = await repo.monthsToSync(
