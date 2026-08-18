@@ -5,6 +5,7 @@ using HabitTracker.Api.Data;
 using HabitTracker.Api.Dtos;
 using HabitTracker.Api.Entities;
 using HabitTracker.Api.Services;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -19,7 +20,12 @@ public class SyncControllerTests
         new(
             new SyncService(db, new CurrentUser(), NullLogger<SyncService>.Instance),
             NullLogger<SyncController>.Instance
-        );
+        )
+        {
+            // Outside the MVC pipeline HttpContext is null by default; the controller now reads
+            // HttpContext.Connection.RemoteIpAddress for the sync-source log line, so give it one.
+            ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() },
+        };
 
     private static SyncRequest OneHabitAt(long editedAt) =>
         new(

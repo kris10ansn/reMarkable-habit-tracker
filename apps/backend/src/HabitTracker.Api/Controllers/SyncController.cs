@@ -21,9 +21,10 @@ public class SyncController(SyncService _sync, ILogger<SyncController> _logger) 
     )
     {
         _logger.LogInformation(
-            "Sync received {HabitCount} habits across {MonthCount} months",
+            "Sync received from {CallerAddress}: {HabitCount} habits across months {Months}",
+            HttpContext.Connection.RemoteIpAddress,
             request.Habits.Count,
-            request.Months.Count
+            string.Join(", ", request.Months.Select(m => m.Month))
         );
 
         try

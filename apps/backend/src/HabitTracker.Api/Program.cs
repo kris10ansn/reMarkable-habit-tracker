@@ -52,6 +52,12 @@ builder.Services.AddScoped<CurrentUser>();
 builder.Services.AddScoped<HabitService>();
 builder.Services.AddScoped<SyncService>();
 
+builder.Logging.AddSimpleConsole(options =>
+{
+    options.SingleLine = true;
+    options.TimestampFormat = "HH:mm:ss ";
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

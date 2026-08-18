@@ -43,16 +43,46 @@ public class SyncService
     {
         RejectSkewedEditTimes(request);
 
-        await MergeHabitsAsync(request.Habits, cancellationToken);
+        var habitCounts = await MergeHabitsAsync(request.Habits, cancellationToken);
         await _db.SaveChangesAsync(cancellationToken);
 
-        await MergeEntriesAsync(request.Months, cancellationToken);
+        var entryCounts = await MergeEntriesAsync(request.Months, cancellationToken);
         await _db.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation(
+            "Merged habits: {HabitsCreated} created, {HabitsUpdated} updated, {HabitsUnchanged} unchanged ({HabitTombstones} tombstones); entries: {EntriesCreated} created, {EntriesUpdated} updated, {EntriesUnchanged} unchanged, {EntriesDropped} dropped (unowned habit)",
+            habitCounts.Created,
+            habitCounts.Updated,
+            habitCounts.Unchanged,
+            habitCounts.Tombstones,
+            entryCounts.Created,
+            entryCounts.Updated,
+            entryCounts.Unchanged,
+            entryCounts.Dropped
+        );
 
         return await BuildResponseAsync(request.Months, cancellationToken);
     }
 
-    private async Task MergeHabitsAsync(
+    /// <summary>
+    /// Counts of what a merge did to the store, for the one-line summary logged in
+    /// <see cref="SyncAsync"/>. Not part of the wire contract — purely for observability.
+    /// </summary>
+    private readonly record struct HabitMergeCounts(
+        int Created,
+        int Updated,
+        int Unchanged,
+        int Tombstones
+    );
+
+    private readonly record struct EntryMergeCounts(
+        int Created,
+        int Updated,
+        int Unchanged,
+        int Dropped
+    );
+
+    private async Task<HabitMergeCounts> MergeHabitsAsync(
         IReadOnlyList<HabitDto> incoming,
         CancellationToken cancellationToken
     )
@@ -60,6 +90,11 @@ public class SyncService
         var existing = await _db
             .Habits.Where(h => h.UserId == _currentUser.UserId)
             .ToDictionaryAsync(h => h.Id, cancellationToken);
+
+        int created = 0,
+            updated = 0,
+            unchanged = 0,
+            tombstones = 0;
 
         foreach (var dto in incoming)
         {
@@ -82,11 +117,17 @@ public class SyncService
                         DeletedAt = FromUnixMsOrNull(dto.DeletedAt),
                     }
                 );
+                created++;
+                if (dto.DeletedAt is not null)
+                {
+                    tombstones++;
+                }
                 continue;
             }
 
             if (editedAt <= habit.EditedAt)
             {
+                unchanged++;
                 continue; // stored row is newer-or-equal — it wins
             }
 
@@ -100,10 +141,18 @@ public class SyncService
                 habit.Position = dto.Position;
                 habit.IsPrivate = dto.IsPrivate;
             }
+            else
+            {
+                tombstones++;
+            }
+
+            updated++;
         }
+
+        return new HabitMergeCounts(created, updated, unchanged, tombstones);
     }
 
-    private async Task MergeEntriesAsync(
+    private async Task<EntryMergeCounts> MergeEntriesAsync(
         IReadOnlyList<SyncMonth> months,
         CancellationToken cancellationToken
     )
@@ -115,14 +164,13 @@ public class SyncService
                 .ToListAsync(cancellationToken)
         ).ToHashSet();
 
-        var incoming = months
-            .SelectMany(m => m.Entries)
-            .Where(e => ownedHabitIds.Contains(e.HabitId))
-            .ToList();
+        var allIncoming = months.SelectMany(m => m.Entries).ToList();
+        var incoming = allIncoming.Where(e => ownedHabitIds.Contains(e.HabitId)).ToList();
+        var dropped = allIncoming.Count - incoming.Count;
 
         if (incoming.Count == 0)
         {
-            return;
+            return new EntryMergeCounts(0, 0, 0, dropped);
         }
 
         var habitIds = incoming.Select(e => e.HabitId).Distinct().ToList();
@@ -132,6 +180,10 @@ public class SyncService
                 .Entries.Where(e => habitIds.Contains(e.HabitId) && dates.Contains(e.Date))
                 .ToListAsync(cancellationToken)
         ).ToDictionary(e => (e.HabitId, e.Date));
+
+        int created = 0,
+            updated = 0,
+            unchanged = 0;
 
         foreach (var dto in incoming)
         {
@@ -149,11 +201,13 @@ public class SyncService
                         DeletedAt = FromUnixMsOrNull(dto.DeletedAt),
                     }
                 );
+                created++;
                 continue;
             }
 
             if (editedAt <= entry.EditedAt)
             {
+                unchanged++;
                 continue;
             }
 
@@ -164,7 +218,11 @@ public class SyncService
             {
                 entry.Outcome = dto.Outcome;
             }
+
+            updated++;
         }
+
+        return new EntryMergeCounts(created, updated, unchanged, dropped);
     }
 
     private async Task<SyncResponse> BuildResponseAsync(
