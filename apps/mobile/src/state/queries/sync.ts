@@ -7,6 +7,7 @@ import * as repo from "@/db/repo";
 import { updateSettings } from "@/db/repo/settings";
 import { monthKey } from "@/domain/dates";
 
+import { useSettings } from "@/state/queries/settings";
 import { entriesKey, habitsKey, settingsKey, streaksKey } from "./keys";
 
 /**
@@ -23,13 +24,12 @@ export function useSync() {
     const db = useDatabase();
     const queryClient = useQueryClient();
 
+    const settings = useSettings();
+
     return useMutation({
-        mutationFn: async (variables: {
-            syncServerUrl: string;
-            lastSyncedAt: number | null;
-            currentMonthKey?: string;
-        }) => {
-            const baseURL = variables.syncServerUrl.trim();
+        mutationFn: async (variables: { currentMonthKey?: string }) => {
+            const baseURL = settings.data?.syncServerUrl.trim() ?? "";
+
             if (!baseURL) {
                 throw new Error(
                     "No Server URL set — the app is standalone. Set one on the Sync tab first.",
@@ -45,7 +45,7 @@ export function useSync() {
             const monthKeys = await repo.monthsToSync(
                 db,
                 currentMonthKey,
-                variables.lastSyncedAt,
+                settings.data?.lastSyncedAt ?? null,
             );
 
             const request = await repo.gatherRequest(db, monthKeys);

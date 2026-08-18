@@ -46,14 +46,10 @@ export default function SyncScreen() {
         });
     };
 
-    const savedServerUrl = settings.data?.syncServerUrl ?? "";
     const lastSyncedAt = settings.data?.lastSyncedAt ?? null;
 
-    const syncNow = () =>
-        sync.mutate({ syncServerUrl: savedServerUrl, lastSyncedAt });
-
     const state = syncState({
-        savedServerUrl,
+        savedServerUrl: settings.data?.syncServerUrl ?? "",
         lastSyncedAt,
         isSyncing: sync.isPending,
         failed: sync.isError,
@@ -71,7 +67,7 @@ export default function SyncScreen() {
                 errorReason={
                     sync.isError ? syncErrorReason(sync.error) : undefined
                 }
-                onSyncNow={syncNow}
+                onSyncNow={() => sync.mutate({})}
             />
 
             <Card className="flex-col">
