@@ -1,6 +1,6 @@
 import { cssInterop } from "nativewind";
 import type { ReactNode } from "react";
-import { ScrollView, View } from "react-native";
+import { RefreshControlProps, ScrollView, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -16,7 +16,7 @@ cssInterop(KeyboardAwareScrollView, {
     contentContainerClassName: "contentContainerStyle",
 });
 
-interface Props {
+type AppScreenProps = {
     title: string;
     eyebrow?: string;
     subtitle?: string;
@@ -26,7 +26,8 @@ interface Props {
     // also handles Android edge-to-edge, where the OS window no longer resizes.
     avoidKeyboard?: boolean;
     children: ReactNode;
-}
+    refreshControl?: React.ReactElement<RefreshControlProps> | undefined;
+};
 
 // Page scaffold shared by every tab: safe-area frame, header, and a body that
 // either scrolls (default) or fills. The bottom edge is owned by the tab bar.
@@ -37,7 +38,8 @@ export function AppScreen({
     scroll = true,
     avoidKeyboard = false,
     children,
-}: Props) {
+    refreshControl,
+}: AppScreenProps) {
     return (
         <SafeAreaView
             className="flex-1 bg-surface-2"
@@ -51,6 +53,7 @@ export function AppScreen({
                         contentContainerClassName="px-4 pb-8"
                         keyboardShouldPersistTaps="handled"
                         bottomOffset={16}
+                        refreshControl={refreshControl}
                     >
                         {children}
                     </KeyboardAwareScrollView>
@@ -58,6 +61,7 @@ export function AppScreen({
                     <ScrollView
                         className="flex-1"
                         contentContainerClassName="px-4 pb-8"
+                        refreshControl={refreshControl}
                     >
                         {children}
                     </ScrollView>

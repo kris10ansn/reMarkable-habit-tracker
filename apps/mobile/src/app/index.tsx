@@ -16,8 +16,10 @@ import {
     useHabits,
     useMonthEntries,
     useStreaks,
+    useSync,
     useToggleEntry,
 } from "@/state/queries";
+import { RefreshControl } from "react-native";
 
 // Today: the primary daily surface — log each habit at a glance. Always pinned to the real
 // current month, whatever the Month tab is viewing.
@@ -46,11 +48,19 @@ export default function TodayScreen() {
             habit.polarity === "Negative" && outcomeOf(habit.id) === "Failure",
     ).length;
 
+    const sync = useSync();
+
     return (
         <AppScreen
             eyebrow={`${weekdayLabel(now)} · Today`}
             title={monthDayLabel(now)}
             subtitle={`${logged} of ${habits.length} habits logged`}
+            refreshControl={
+                <RefreshControl
+                    refreshing={habitsQuery.isPending || sync.isPending}
+                    onRefresh={() => sync.mutate({})}
+                />
+            }
         >
             {habitsQuery.isPending ? (
                 <Loading />
