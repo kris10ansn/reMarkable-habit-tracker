@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { RefreshControl } from "react-native";
 
 import { MonthGrid } from "@/components/month/MonthGrid";
 import { MonthNav } from "@/components/month/MonthNav";
@@ -10,6 +11,7 @@ import {
     useHabits,
     useMonthEntries,
     useStreaks,
+    useSync,
     useToggleEntry,
 } from "@/state/queries";
 
@@ -40,11 +42,21 @@ export default function MonthScreen() {
     const streaksQuery = useStreaks(habits);
     const toggle = useToggleEntry(view.monthKey);
 
+    const sync = useSync();
+
     return (
         <AppScreen
             eyebrow="Overview"
             title="Month"
             subtitle="Your habits across the month"
+            refreshControl={
+                <RefreshControl
+                    refreshing={habitsQuery.isPending || sync.isPending}
+                    onRefresh={() =>
+                        sync.mutate({ currentMonthKey: view.monthKey })
+                    }
+                />
+            }
         >
             <MonthNav
                 label={view.monthLabel}
