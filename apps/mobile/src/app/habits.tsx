@@ -6,11 +6,13 @@ import { CommunityIcon } from "@/components/ui/Icon";
 import { Loading } from "@/components/ui/Loading";
 import { SortableList, SortableListHandle } from "@/components/ui/SortableList";
 import { Habit } from "@/domain/types";
-import { useHabits, useReorderHabit } from "@/state/queries";
+import { useHabits, useReorderHabit, useSync } from "@/state/queries";
+import { RefreshControl } from "react-native";
 
 export default function HabitsScreen() {
     const habitsQuery = useHabits();
     const reorder = useReorderHabit();
+    const sync = useSync();
 
     return (
         <AppScreen
@@ -18,6 +20,12 @@ export default function HabitsScreen() {
             title="Habits"
             subtitle="Rename, reorder, set polarity, or add"
             avoidKeyboard
+            refreshControl={
+                <RefreshControl
+                    refreshing={sync.isPending}
+                    onRefresh={() => sync.mutate({})}
+                />
+            }
         >
             {habitsQuery.isPending ? (
                 <Loading />
