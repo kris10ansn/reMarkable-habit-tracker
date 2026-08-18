@@ -13,8 +13,8 @@ existing sections over appending; remove guidance that goes stale.
 
 ASP.NET Core (.NET 10) Web API over EF Core + PostgreSQL. It owns the **canonical** Habit/Entry
 records and performs **Sync**. It does not mirror any client's on-device shape — it stores the same
-data reframed for a relational API, and client-only presentation concerns (grid orientation, suspend
-visibility) deliberately do not cross into it.
+data reframed for a relational API, and client-only presentation concerns (grid orientation, a
+device's reveal setting for private habits) deliberately do not cross into it.
 
 Layout, prerequisites, run commands, migrations, and the endpoint reference are in
 [`README.md`](./README.md). The vocabulary this app adds — **User, Outcome, Position, Sync,

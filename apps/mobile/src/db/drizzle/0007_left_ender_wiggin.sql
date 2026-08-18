@@ -1,0 +1,1 @@
+ALTER TABLE `habits` ADD `isPrivate` integer DEFAULT false NOT NULL;

@@ -1,3 +1,5 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using HabitTracker.Api.Controllers;
 using HabitTracker.Api.Data;
 using HabitTracker.Api.Dtos;
@@ -21,7 +23,18 @@ public class SyncControllerTests
 
     private static SyncRequest OneHabitAt(long editedAt) =>
         new(
-            [new HabitDto(Guid.NewGuid(), "Read", Polarity.Positive, 0, editedAt, editedAt, null)],
+            [
+                new HabitDto(
+                    Guid.NewGuid(),
+                    "Read",
+                    Polarity.Positive,
+                    0,
+                    false,
+                    editedAt,
+                    editedAt,
+                    null
+                ),
+            ],
             []
         );
 
@@ -56,5 +69,43 @@ public class SyncControllerTests
         var problem = Assert.IsType<ProblemDetails>(badRequest.Value);
         Assert.Equal(400, problem.Status);
         Assert.Empty(db.Habits);
+    }
+
+    [Fact]
+    public async Task Sync_AHabitJsonOmittingIsPrivate_BindsToFalse_AndSucceeds()
+    {
+        // Pins System.Text.Json's positional-record default binding: an old client's payload that
+        // predates the field must still deserialize and sync, rather than throwing or failing to bind.
+        using var db = NewDb();
+        var controller = NewController(db);
+        var editedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+        var json =
+            $$"""
+            {
+                "habits": [
+                    {
+                        "id": "{{Guid.NewGuid()}}",
+                        "name": "Read",
+                        "polarity": "Positive",
+                        "position": 0,
+                        "createdAt": {{editedAt}},
+                        "editedAt": {{editedAt}},
+                        "deletedAt": null
+                    }
+                ],
+                "months": []
+            }
+            """;
+        var jsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        jsonOptions.Converters.Add(new JsonStringEnumConverter());
+        var request = JsonSerializer.Deserialize<SyncRequest>(json, jsonOptions)!;
+        Assert.False(Assert.Single(request.Habits).IsPrivate);
+
+        var result = await controller.Sync(request, CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result.Result);
+        var response = Assert.IsType<SyncResponse>(ok.Value);
+        Assert.False(Assert.Single(response.Habits).IsPrivate);
     }
 }

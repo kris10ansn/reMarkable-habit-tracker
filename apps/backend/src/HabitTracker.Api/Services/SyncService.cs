@@ -75,6 +75,7 @@ public class SyncService
                         Name = dto.Name,
                         Polarity = dto.Polarity,
                         Position = dto.Position,
+                        IsPrivate = dto.IsPrivate,
                         // Verbatim: the creating client owns the create-time (see ITimestamped).
                         CreatedAt = FromUnixMs(dto.CreatedAt),
                         EditedAt = editedAt,
@@ -97,6 +98,7 @@ public class SyncService
                 habit.Name = dto.Name;
                 habit.Polarity = dto.Polarity;
                 habit.Position = dto.Position;
+                habit.IsPrivate = dto.IsPrivate;
             }
         }
     }
@@ -188,6 +190,7 @@ public class SyncService
                 h.Name,
                 h.Polarity,
                 h.Position,
+                h.IsPrivate,
                 ToUnixMs(h.CreatedAt),
                 ToUnixMs(h.EditedAt),
                 null

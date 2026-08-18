@@ -20,6 +20,10 @@ export type HabitDto = {
      */
     position: number;
     /**
+     * @type boolean
+     */
+    isPrivate: boolean;
+    /**
      * @type integer, int64
      */
     createdAt: number;

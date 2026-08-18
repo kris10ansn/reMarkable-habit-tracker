@@ -16,15 +16,18 @@ namespace HabitTracker.Api.Dtos;
 
 /// <summary>
 /// A habit as every client holds it. `CreatedAt` and `EditedAt` are the creating/editing client's
-/// own clock, stored verbatim; `EditedAt` is the last-write-wins merge key. `DeletedAt` is the
-/// tombstone: null while alive, holding the delete-time once soft-deleted. Sync responses carry
-/// the authoritative ALIVE state only, so `DeletedAt` is always null on the way out.
+/// own clock, stored verbatim; `EditedAt` is the last-write-wins merge key. `IsPrivate` is shared
+/// user intent (hidden from glanceable surfaces unless a device-local reveal setting is on) and
+/// syncs like `Name`/`Polarity`/`Position`. `DeletedAt` is the tombstone: null while alive, holding
+/// the delete-time once soft-deleted. Sync responses carry the authoritative ALIVE state only, so
+/// `DeletedAt` is always null on the way out.
 /// </summary>
 public record HabitDto(
     Guid Id,
     string Name,
     Polarity Polarity,
     int Position,
+    bool IsPrivate,
     long CreatedAt,
     long EditedAt,
     long? DeletedAt

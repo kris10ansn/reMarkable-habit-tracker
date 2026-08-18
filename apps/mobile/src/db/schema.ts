@@ -19,6 +19,7 @@ export const habits = sqliteTable("habits", {
     name: text().notNull(),
     polarity: text({ enum: ["Positive", "Negative"] }).notNull(),
     position: integer().notNull(),
+    isPrivate: integer({ mode: "boolean" }).notNull().default(false),
     createdAt: integer().notNull(),
     editedAt: integer().notNull(),
     deletedAt: integer(),

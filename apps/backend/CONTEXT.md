@@ -26,6 +26,14 @@ A habit's explicit sort order within its User's list. Shared user intent — a r
 sync across devices — not per-client presentation (unlike grid orientation).
 _Avoid_: index, rank, sortKey (an implementation detail of how Position is encoded).
 
+**Private**:
+A habit's `IsPrivate` flag: hidden from glanceable surfaces (a device's suspend image, its main
+grid) on the device that renders it. Shared user intent, like Position — marking a habit private is
+meant to sync across devices, so it's a column on `Habit` and a `HabitDto` field like any other. The
+per-device reveal setting that lets a device show its private habits anyway is per-client
+presentation and stays out of the backend entirely, the same way grid orientation does.
+_Avoid_: hidden, suspended, hideFromSleep (the field's device-local predecessor).
+
 ## Sync
 
 **Sync**:

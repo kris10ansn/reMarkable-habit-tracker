@@ -1,9 +1,11 @@
 # Habit Tracker — Shared Domain
 
 The vocabulary every client and the backend share: what a habit is, how a day's state is recorded,
-and what the marks mean. Presentation concerns — grid orientation, e-ink rendering, the suspend
-image — are **not** here; each app documents those in its own `CONTEXT.md`. This file is a glossary
-and nothing else.
+and what the marks mean. Presentation concerns — grid orientation, e-ink rendering, whether the
+suspend image renders a habit at all — are **not** here; each app documents those in its own
+`CONTEXT.md`. Domain intent that happens to affect presentation, like **Private**, belongs here
+instead: it is shared user intent that syncs, not a per-client rendering choice. This file is a
+glossary and nothing else.
 
 The backend reframes some of this for storage and sync (Outcome, Position, Edit-time, Tombstone) —
 those terms live in [`apps/backend/CONTEXT.md`](./apps/backend/CONTEXT.md), which is the source of
@@ -60,3 +62,11 @@ cycle Unmarked (shown as X) → O → Unmarked.
 The seed list a client uses the first time it runs with no saved data yet. Each client carries its
 own copy — the backend seeds no habits, so a first Sync from a fresh client is what populates the
 canonical store.
+
+**Private**:
+A habit flagged hidden from glanceable surfaces (a device's suspend/lock-screen image, its main
+grid) unless a device-local reveal setting is turned on for that device. The flag itself is shared
+user intent and syncs like name or polarity; the reveal setting is per-client presentation and never
+syncs — a habit marked private on one device stays hidden on every other device until that device's
+own reveal setting is enabled there too.
+_Avoid_: hidden, suspended, hideFromSleep (the field's device-local predecessor).

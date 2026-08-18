@@ -68,6 +68,7 @@ export async function seedIfEmpty(db: Database): Promise<void> {
                 name: seed.name,
                 polarity: seed.polarity,
                 position,
+                isPrivate: false,
                 createdAt,
                 editedAt: now,
                 deletedAt: null,

@@ -13,6 +13,7 @@ export const habitDtoSchema = z.object({
         return polaritySchema;
     },
     position: z.int(),
+    isPrivate: z.boolean(),
     createdAt: z.int(),
     editedAt: z.int(),
     deletedAt: z.nullable(z.int()),

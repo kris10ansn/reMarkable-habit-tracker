@@ -1,8 +1,9 @@
 namespace HabitTracker.Api.Entities;
 
 /// <summary>
-/// A tracked behaviour owned by a single User. Device-only client fields (e.g.
-/// hideFromSleep) do not cross into the backend.
+/// A tracked behaviour owned by a single User. Every client-owned field crosses the wire
+/// verbatim; only per-device presentation settings (e.g. the reveal setting for private
+/// habits) stay client-side.
 /// </summary>
 public class Habit : ITimestamped
 {
@@ -16,6 +17,12 @@ public class Habit : ITimestamped
 
     /// <summary>Explicit sort order within the owner's list — shared intent, meant to sync.</summary>
     public int Position { get; set; }
+
+    /// <summary>
+    /// Hidden from glanceable surfaces (suspend image, main grid) unless a device-local reveal
+    /// setting is on. Shared user intent, so it syncs — the reveal setting doesn't.
+    /// </summary>
+    public bool IsPrivate { get; set; }
 
     /// <summary>
     /// The client's edit-time (UTC) for this row's current state — the last-write-wins merge key

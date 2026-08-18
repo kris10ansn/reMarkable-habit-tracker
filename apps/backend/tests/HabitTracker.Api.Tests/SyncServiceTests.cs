@@ -28,6 +28,7 @@ public class SyncServiceTests
         bool deleted = false,
         int position = 0,
         Polarity polarity = Polarity.Positive,
+        bool isPrivate = false,
         long? createdAt = null,
         long? deletedAtMs = null
     ) =>
@@ -36,6 +37,7 @@ public class SyncServiceTests
             name,
             polarity,
             position,
+            isPrivate,
             createdAt ?? Ms(0),
             editedAt,
             deletedAtMs ?? (deleted ? editedAt : null)
@@ -274,6 +276,37 @@ public class SyncServiceTests
         Assert.Equal(SyncService.ClockSkewTolerance, skew.Tolerance);
         Assert.True(skew.SkewMs > (long)SyncService.ClockSkewTolerance.TotalMilliseconds);
         Assert.Empty(db.Habits);
+    }
+
+    [Fact]
+    public async Task Sync_RoundTripsIsPrivate_ToTheSameClientAndToAFreshOne()
+    {
+        using var db = NewDb();
+        var sync = NewSync(db);
+        var id = Guid.NewGuid();
+
+        var response = await sync.SyncAsync(Request([Habit(id, "Read", Ms(0), isPrivate: true)]));
+        Assert.True(Assert.Single(response.Habits).IsPrivate);
+
+        // A second client that has never synced pulls the same flag from an empty push.
+        var pulled = await sync.SyncAsync(Request([]));
+        Assert.True(Assert.Single(pulled.Habits).IsPrivate);
+    }
+
+    [Fact]
+    public async Task Sync_IsPrivate_IsLastWriteWinsLikeEveryOtherField()
+    {
+        using var db = NewDb();
+        var sync = NewSync(db);
+        var id = Guid.NewGuid();
+
+        await sync.SyncAsync(Request([Habit(id, "Read", Ms(10), isPrivate: true)]));
+
+        var stale = await sync.SyncAsync(Request([Habit(id, "Read", Ms(5), isPrivate: false)]));
+        Assert.True(Assert.Single(stale.Habits).IsPrivate);
+
+        var fresher = await sync.SyncAsync(Request([Habit(id, "Read", Ms(20), isPrivate: false)]));
+        Assert.False(Assert.Single(fresher.Habits).IsPrivate);
     }
 
     [Fact]

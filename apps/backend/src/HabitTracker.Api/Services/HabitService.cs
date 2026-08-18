@@ -145,6 +145,7 @@ public class HabitService
             habit.Name,
             habit.Polarity,
             habit.Position,
+            habit.IsPrivate,
             ToUnixMs(habit.CreatedAt),
             ToUnixMs(habit.EditedAt),
             null

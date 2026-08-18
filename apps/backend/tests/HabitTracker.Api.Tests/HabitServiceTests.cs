@@ -107,6 +107,40 @@ public class HabitServiceTests
     }
 
     [Fact]
+    public async Task CreateHabit_DefaultsIsPrivateToFalse()
+    {
+        using var db = NewDb();
+        var service = new HabitService(db, new CurrentUser());
+
+        var created = await service.CreateHabitAsync(new CreateHabitRequest("Read", Polarity.Positive));
+
+        Assert.False(created.IsPrivate);
+    }
+
+    [Fact]
+    public async Task UpdateHabit_LeavesAStoredIsPrivateFlagUntouched()
+    {
+        // UpdateHabitRequest has no IsPrivate field — only Sync owns that flag's wire path — so a
+        // REST update must not clear it back to false as a side effect of touching other fields.
+        using var db = NewDb();
+        var service = new HabitService(db, new CurrentUser());
+        var created = await service.CreateHabitAsync(
+            new CreateHabitRequest("Read", Polarity.Positive)
+        );
+        var stored = await db.Habits.SingleAsync(h => h.Id == created.Id);
+        stored.IsPrivate = true;
+        await db.SaveChangesAsync();
+
+        var updated = await service.UpdateHabitAsync(
+            created.Id,
+            new UpdateHabitRequest("Read more", Polarity.Negative, 3)
+        );
+
+        Assert.NotNull(updated);
+        Assert.True(updated!.IsPrivate);
+    }
+
+    [Fact]
     public async Task DeleteHabit_RemovesOwnedHabit_AndReportsMissing()
     {
         using var db = NewDb();

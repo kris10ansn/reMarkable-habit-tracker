@@ -30,6 +30,7 @@ export async function createHabit(
         name,
         polarity,
         position: roster.length,
+        isPrivate: false,
         createdAt: now,
         editedAt: now,
         deletedAt: null,
