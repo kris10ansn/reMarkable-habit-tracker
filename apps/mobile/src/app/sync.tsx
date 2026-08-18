@@ -35,7 +35,15 @@ export default function SyncScreen() {
     }, [settings.data]);
 
     const updateSyncSettingsUrl = () => {
-        updateSettings.mutate({ syncServerUrl });
+        // A different backend has different history, so a stale lastSyncedAt would make the next
+        // sync a silently-partial incremental one instead of the full one it needs to be.
+        const changedServer =
+            syncServerUrl !== (settings.data?.syncServerUrl ?? "");
+
+        updateSettings.mutate({
+            syncServerUrl,
+            ...(changedServer ? { lastSyncedAt: null } : {}),
+        });
     };
 
     const savedServerUrl = settings.data?.syncServerUrl ?? "";

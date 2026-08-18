@@ -40,13 +40,16 @@ today highlighted) and **navigable to any month** (past editable, future view-on
 Query** hooks (`src/state/queries/`) over a thin repo (`src/db/repo/`). Tapping a `HabitMark` on
 Today or Month cycles its state; the Habits tab renames, flips polarity, and drag-to-reorders (drag
 a row by its handle — the generic `components/ui/SortableList` with an inline `HabitRow` in
-`app/habits.tsx`). The Sync tab persists a **Server URL** setting (empty = standalone).
+`app/habits.tsx`). The Sync tab persists a **Server URL** setting (empty = standalone) and offers a
+manual **Sync now**; the Month screen also background-syncs whichever month is being viewed
+whenever a Server URL is set.
 
-**In flight:** the schema, tombstones, the `editedAt` merge key, and the generated backend seam
-(`src/api/`) are in place, but the sync _engine_ (gather → POST → apply) is not built yet, and
-adding/deleting habits is still affordance-only (`db/repo/habits.ts` has no create/delete). Build
-the engine on the generated `sync()` client — never a hand-rolled `fetch` — and pass it the Server
-URL from settings.
+Sync itself is one round trip: `useSync` (`src/state/queries/sync.ts`) gathers local state — the
+months with entries edited since `lastSyncedAt` plus the month currently in view — via
+`src/db/repo/sync.ts` (`monthsToSync`, `gatherRequest`), POSTs it through the generated `sync()`
+client, then overwrites local state with the backend's authoritative response (`applySynced`);
+`syncStartedAt` guards rows edited while the request is in flight. Merge is entirely the backend's
+call (last-write-wins on `editedAt`) — mobile never resolves conflicts itself.
 
 ## Domain
 
@@ -67,7 +70,7 @@ since it crosses month partitions.
   app-wide stylesheet entrypoint — keep this import). Routes: `index` (Today), `month`, `habits`,
   `sync`.
 - `src/components/AppProviders.tsx` — the provider stack (TanStack Query client + `DatabaseGate`,
-  which runs migrations and seeds before rendering children). Screens can assume a ready DB.
+  which runs migrations before rendering children). Screens can assume a ready DB.
 - `src/components/` — UI grouped by feature: `ui/` holds reusable primitives (`Card`, `Button`,
   `Pill`, `Icon`, `IconButton`, `StatCard`, `TextField`, `AppScreen`, `ScreenHeader`, `SortableList`);
   `today/`, `month/`, `habits/`, `sync/` hold screen-specific pieces; `HabitMark.tsx` is the shared
@@ -79,20 +82,20 @@ since it crosses month partitions.
   results match the domain types with no mappers; three tables, `habits` / `entries` /
   singleton `settings`), `drizzle/` (drizzle-kit–generated migrations — regenerate with
   `pnpm db:generate` after editing the schema; committed, not ignored), `client.ts`
-  (`useDatabase` — the typed Drizzle handle), `migrations.ts` (wraps the generated bundle), `seed.ts`
-  (`seedIfEmpty` — first-run roster plus demo entries so the app opens populated), `repo/` (the only
-  DB access — Drizzle query builder, split per entity into
-  `habits.ts`/`entries.ts`/`streaks.ts`/`settings.ts` behind an `index.ts` barrel so
+  (`useDatabase` — the typed Drizzle handle), `migrations.ts` (wraps the generated bundle), `repo/`
+  (the only DB access — Drizzle query builder, split per entity into
+  `habits.ts`/`entries.ts`/`streaks.ts`/`settings.ts`/`sync.ts` behind an `index.ts` barrel so
   `import * as repo` keeps working; reads return alive rows, writes stamp `editedAt` (the merge
   key — the backend's audit `UpdatedAt` is server-owned, never on the wire, and deliberately not
   mirrored here) and set `deletedAt` on soft-delete). Migrations run at startup via `useMigrations`
   in `AppProviders`' `DatabaseGate`. Build glue: `babel.config.js` inlines `.sql`,
   `metro.config.js` adds the `sql` sourceExt (both required by Drizzle's expo migrator).
 - `src/state/queries/` — the data seam: TanStack Query hooks `useHabits`, `useMonthEntries`,
-  `useStreaks`, `useSettings`, and the
+  `useStreaks`, `useSettings`, `useSync`, and the
   `useToggleEntry`/`useUpdateHabit`/`useReorderHabit`/`useUpdateSettings` mutations (optimistic +
-  invalidating), split per entity into `habits.ts`/`entries.ts`/`streaks.ts`/`settings.ts` with the
-  query keys in `keys.ts`; `index.ts` is the public surface — import from `@/state/queries`
+  invalidating), split per entity into
+  `habits.ts`/`entries.ts`/`streaks.ts`/`settings.ts`/`sync.ts` with the query keys in `keys.ts`;
+  `index.ts` is the public surface — import from `@/state/queries`
   (`streaksKey` stays internal). Screens read through these, never SQLite directly. Habits carry a
   stable `id` — key lists on it, never on `name` (renames would remount) or the index (reorders
   would desync uncontrolled `TextInput`s).

@@ -1,8 +1,10 @@
 import { useDatabase } from "@/db/client";
 import { getSettings, SettingsPatch, updateSettings } from "@/db/repo/settings";
+import type { settings } from "@/db/schema";
 import { settingsKey } from "@/state/queries/keys";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Settings } from "react-native";
+
+type Settings = typeof settings.$inferSelect;
 
 export const useSettings = () => {
     const db = useDatabase();

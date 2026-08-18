@@ -20,16 +20,14 @@ It renders the Habit × Entry model in the backend's shape over a mobile-native,
 
 ## Status
 
-**Persistent and editable; sync in progress.** Habits and entries live in on-device SQLite
-(`expo-sqlite` + Drizzle) read through TanStack Query, so marking a day, renaming a habit, flipping
-its polarity, and reordering the roster all persist across restarts. Rows already carry the fields a
-Sync needs — `editedAt` (the last-write-wins merge key) and `deletedAt` tombstones — and the Sync
-screen stores a **Server URL** (blank = standalone).
-
-Still to build: the sync engine itself (gather local state → `POST` to the backend → apply the
-authoritative result), and adding/deleting habits, which remain affordances. The backend at
-[`apps/backend/`](../backend/) owns the merge — this client submits its state and accepts the
-result rather than resolving conflicts itself.
+**Persistent, editable, and synced.** Habits and entries live in on-device SQLite (`expo-sqlite` +
+Drizzle) read through TanStack Query, so marking a day, renaming a habit, flipping its polarity,
+reordering the roster, and adding or deleting habits all persist across restarts. The Sync screen
+stores a **Server URL** (blank = standalone) and offers a manual **Sync now**; the Month screen also
+background-syncs whichever month is being viewed. A fresh install starts empty and fills in from its
+first sync. The backend at [`apps/backend/`](../backend/) owns the merge (last-write-wins on
+`editedAt`) — this client submits its state and accepts the result rather than resolving conflicts
+itself.
 
 ## Run it
 
@@ -62,9 +60,9 @@ src/
 │                 AppScreen, SortableList, …), today/, month/, habits/, sync/,
 │                 plus HabitMark.tsx and AppProviders.tsx (query client + DatabaseGate).
 ├── db/           SQLite via Drizzle — schema.ts, drizzle/ (generated migrations),
-│                 client.ts, migrations.ts, seed.ts, repo/ (the only DB access).
-├── state/        queries/ — TanStack Query hooks + mutations; the seam screens read
-│                 through. Screens never touch SQLite directly.
+│                 client.ts, migrations.ts, repo/ (the only DB access, incl. sync.ts).
+├── state/        queries/ — TanStack Query hooks + mutations, incl. sync.ts; the seam
+│                 screens read through. Screens never touch SQLite directly.
 ├── domain/       model + logic, no UI (types.ts, dates.ts, entries.ts, roster.ts, marks.ts).
 ├── theme/        palette.js — single source of color values; colors.ts re-exports
 │                 it raw for non-className APIs (the tab bar).
