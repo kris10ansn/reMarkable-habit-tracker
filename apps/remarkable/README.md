@@ -112,12 +112,30 @@ Override the binary with `make RCC=<path>` if it isn't on `$PATH` as `rcc-qt5`.
 
 ```sh
 make build      # produces build/resources.rcc + staged icon/manifest
+make test       # runs the test suite (see below)
 make deploy     # scps build/* to the device
 make remove     # uninstalls from the device
 make backup     # pulls the device's data/ into a timestamped .backup/ dir
 make find-hotspot-ip  # relocates the tablet on the current network (see below)
 make clean      # nukes local build/
 ```
+
+### Tests
+
+```sh
+make test                  # Qt Quick Test over tests/tst_*.qml
+make suspend-writer-test   # smoke-tests the off-device renderer against tests/fixtures/
+```
+
+`make test` needs `qmltestrunner-qt5` (Arch/Manjaro: `pacman -S qt5-declarative`; Debian/Ubuntu:
+`apt install qtdeclarative5-dev-tools`), and runs headless against the sources in `src/` — no build
+step first. It covers the plain-JS modules (the sync wire format, the outcome cycles, the date and
+scroll helpers, the suspend-image signature) and the QML stores (debounced saving, the refusal of
+unreadable files, month navigation, and the sync engine's terminal paths). Override the runner with
+`make QMLTESTRUNNER=<path>`.
+
+`make suspend-writer-test` additionally needs a host C++ toolchain and Qt 5 dev headers, since it
+builds `tools/suspend-writer` first.
 
 ### Finding the tablet after its address changes
 

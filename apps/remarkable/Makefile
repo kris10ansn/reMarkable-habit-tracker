@@ -4,15 +4,18 @@ APP_ID := habit-tracker
 REMOTE_DIR := /home/root/xovi/exthome/appload/$(APP_ID)
 RCC ?= rcc-qt5
 QMLLINT ?= qmllint-qt5
+QMLTESTRUNNER ?= qmltestrunner-qt5
 QML_IMPORT_PATH ?= /usr/lib/qt/qml
 BUILD_DIR := build
 BACKUP_DIR := .backup
+TEST_DIR := tests
+TEST_TMP := $(TEST_DIR)/tmp
 QML_FILES := $(shell find src -name '*.qml')
 SW_DIR := tools/suspend-writer
 SW_REMOTE_DIR := $(REMOTE_DIR)/suspend-writer
 SW_JS_MODULES := $(addprefix src/js/,SuspendDraw.js DateUtils.js Entries.js Polarity.js HabitsModel.js)
 
-.PHONY: build inject-pragma deploy remove clean lint backup find-hotspot-ip \
+.PHONY: build inject-pragma deploy remove clean lint test suspend-writer-test backup find-hotspot-ip \
 	suspend-writer-host suspend-writer-device suspend-writer-deploy suspend-writer-clean
 
 build: inject-pragma
@@ -33,6 +36,24 @@ inject-pragma:
 
 lint:
 	@command -v $(QMLLINT) >/dev/null 2>&1 && $(QMLLINT) -I $(QML_IMPORT_PATH) $(QML_FILES) || echo "$(QMLLINT) not installed; skipping"
+
+# Qt Quick Test over tests/tst_*.qml — JS modules and QML stores alike, against live src/.
+# Runs on host Qt 5.15, the same Qt the device has. Unlike `lint`, this target must fail the
+# build when it fails: no `|| echo skipping` here, and a missing runner is an error.
+#
+# Stores read and write through Storage.js, i.e. XHR against file:// — Qt 5.15 warns unless the
+# two QML_XHR_ALLOW_FILE_* opt-ins are set. tests/tmp is the scratch dir every file test uses;
+# it is wiped first so a run never reads a previous run's leftovers.
+#
+# The two habits-* subdirs exist because XHR cannot mkdir (the same limitation that makes the
+# deploy create data/ — ADR 0002), so a HabitsStore test cannot make its own: habits/ is the
+# shared working dir, habits-seed/ is left empty for the first-run seeding test.
+test:
+	@command -v $(QMLTESTRUNNER) >/dev/null 2>&1 || { echo "$(QMLTESTRUNNER) not found (install qt5-declarative)"; exit 1; }
+	rm -rf $(TEST_TMP)
+	mkdir -p $(TEST_TMP)/habits $(TEST_TMP)/habits-seed
+	QT_QPA_PLATFORM=offscreen QML_XHR_ALLOW_FILE_READ=1 QML_XHR_ALLOW_FILE_WRITE=1 \
+		$(QMLTESTRUNNER) -input $(TEST_DIR) -import $(QML_IMPORT_PATH)
 
 # The data/ subdir must exist before first launch: QML/XHR cannot create it, so
 # a missing dir turns every save into a visible failure (see ADR 0002).
@@ -64,6 +85,13 @@ clean:
 # Host build (Qt5, no SDK) for previewing renders on your machine.
 suspend-writer-host:
 	$(SW_DIR)/build-host.sh
+
+# Smoke-test the host build against committed fixtures. Separate from `test` because it needs a
+# C++ build: `make test` stays a fast, dependency-free loop. Run this after touching src/js or the
+# on-disk shape — neither `build` nor `lint` notices when the tool drifts out of date.
+suspend-writer-test: suspend-writer-host
+	mkdir -p $(TEST_TMP)
+	$(TEST_DIR)/suspend-writer-smoke.sh
 
 # Cross-build for the device (ARM, Qt6) — requires the SDK unpacked at $(SW_DIR)/sdk.
 suspend-writer-device:

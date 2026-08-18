@@ -1,6 +1,9 @@
 build/
 .backup/
 
+# Scratch dir `make test` wipes and recreates for the file-backed store tests.
+tests/tmp/
+
 # --- tools/suspend-writer ---
 # Build outputs (host + ARM binaries, moc, rendered previews).
 tools/suspend-writer/build/

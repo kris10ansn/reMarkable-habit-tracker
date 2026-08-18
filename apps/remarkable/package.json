@@ -5,6 +5,7 @@
     "description": "Thin wrapper: this app is built with make, not node. Scripts shell out to the Makefile.",
     "scripts": {
         "build": "make build",
+        "test": "make test",
         "lint": "make lint",
         "clean": "make clean",
         "deploy": "make deploy",

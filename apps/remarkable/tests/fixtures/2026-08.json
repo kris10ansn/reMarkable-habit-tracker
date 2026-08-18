@@ -1,0 +1,40 @@
+{
+    "month": "2026-08",
+    "entries": [
+        {
+            "habitId": "6f1c2a54-9b3d-4e71-8a20-1d4f6c8b5e93",
+            "date": "2026-08-01",
+            "outcome": "x",
+            "editedAt": 1754006400000,
+            "deletedAt": null
+        },
+        {
+            "habitId": "6f1c2a54-9b3d-4e71-8a20-1d4f6c8b5e93",
+            "date": "2026-08-02",
+            "outcome": "o",
+            "editedAt": 1754092800000,
+            "deletedAt": null
+        },
+        {
+            "habitId": "6f1c2a54-9b3d-4e71-8a20-1d4f6c8b5e93",
+            "date": "2026-08-05",
+            "outcome": "x",
+            "editedAt": 1754352000000,
+            "deletedAt": 1754352000000
+        },
+        {
+            "habitId": "b28e7d10-4c65-4f8a-9e31-7a05c2d9f416",
+            "date": "2026-08-03",
+            "outcome": "o",
+            "editedAt": 1754179200000,
+            "deletedAt": null
+        },
+        {
+            "habitId": "c93f5e28-7d14-4b60-85af-3e9027c1d8b5",
+            "date": "2026-08-04",
+            "outcome": "x",
+            "editedAt": 1754265600000,
+            "deletedAt": null
+        }
+    ]
+}

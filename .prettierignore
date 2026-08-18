@@ -5,6 +5,9 @@
 pnpm-lock.yaml
 *.rcc
 
+# Scratch data written by `make test` in apps/remarkable.
+apps/remarkable/tests/tmp/
+
 # Emitted verbatim by `dotnet build` (see HabitTracker.Api.csproj). Formatting it here would fight
 # the next build, which rewrites the file.
 apps/backend/openapi.json

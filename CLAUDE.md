@@ -78,11 +78,12 @@ the device, describe what to run and wait. This applies even when a `make` targe
       regenerates the Drizzle migrations after a schema edit; `pnpm mobile:api:generate` regenerates
       mobile's backend client from `apps/backend/openapi.json` (rebuild that first with
       `pnpm backend:build`).
-    - `pnpm remarkable:build` (also `remarkable:clean` / `remarkable:backup` / `remarkable:deploy` /
-      `remarkable:remove` / `remarkable:find-hotspot-ip`, which shell out to `make` —
-      `deploy`/`remove`/`backup`/`find-hotspot-ip` touch the device, so user-only).
-      `remarkable:find-hotspot-ip` nmap-scans the current network for the tablet (identifying it by
-      SSH host key) and repoints `~/.ssh/config` at it.
+    - `pnpm remarkable:build` (also `remarkable:test` / `remarkable:clean` / `remarkable:backup` /
+      `remarkable:deploy` / `remarkable:remove` / `remarkable:find-hotspot-ip`, which shell out to
+      `make` — `deploy`/`remove`/`backup`/`find-hotspot-ip` touch the device, so user-only).
+      `remarkable:test` runs that app's Qt Quick Test suite; it needs `qmltestrunner-qt5` and is the
+      only checker there that can fail. `remarkable:find-hotspot-ip` nmap-scans the current network
+      for the tablet (identifying it by SSH host key) and repoints `~/.ssh/config` at it.
     - `pnpm backend:start` (also `backend:build` / `backend:watch` / `backend:test`), plus the
       database targets `backend:db:up` / `backend:db:down` / `backend:migrate` / `backend:db:clear`.
       `db:up` needs Docker; `migrate` applies the EF Core migrations.

@@ -13,6 +13,7 @@
         "mobile:db:generate": "pnpm --filter @habit-tracker/mobile run db:generate",
         "mobile:api:generate": "pnpm --filter @habit-tracker/mobile run api:generate",
         "remarkable:build": "pnpm --filter @habit-tracker/remarkable run build",
+        "remarkable:test": "pnpm --filter @habit-tracker/remarkable run test",
         "remarkable:clean": "pnpm --filter @habit-tracker/remarkable run clean",
         "remarkable:deploy": "pnpm --filter @habit-tracker/remarkable run deploy",
         "remarkable:remove": "pnpm --filter @habit-tracker/remarkable run remove",

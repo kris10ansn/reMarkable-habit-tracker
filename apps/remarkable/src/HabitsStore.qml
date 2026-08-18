@@ -16,7 +16,8 @@ import "js/Ids.js" as Ids
 QtObject {
     id: store
 
-    readonly property string dataDir: "/home/root/xovi/exthome/appload/habit-tracker/data"
+    // Assignable only so the tests can point a store at a scratch dir; the app never sets it.
+    property string dataDir: "/home/root/xovi/exthome/appload/habit-tracker/data"
     property date today: new Date()
 
     // The month the grid is currently viewing. Starts on the real current month;
