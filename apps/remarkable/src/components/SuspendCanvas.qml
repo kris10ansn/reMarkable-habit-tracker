@@ -103,18 +103,24 @@ Canvas {
         _cancelPending();
     }
 
-    function backup() {
+    // Both report through onDone rather than returning: the copy is only known to have worked once
+    // the write has landed. onDone is optional for restore, whose caller has nothing left to gate.
+    function backup(onDone) {
         canvas.phase = "backing-up";
-        const ok = SuspendRender.copyFile(canvas.targetPath, canvas.backupPath);
-        canvas.phase = ok ? "backed-up" : "backup-failed";
-        return ok;
+        SuspendRender.copyFile(canvas.targetPath, canvas.backupPath, ok => {
+            canvas.phase = ok ? "backed-up" : "backup-failed";
+            if (onDone)
+                onDone(ok);
+        });
     }
 
-    function restore() {
+    function restore(onDone) {
         canvas.phase = "restoring";
-        const ok = SuspendRender.copyFile(canvas.backupPath, canvas.targetPath);
-        canvas.phase = ok ? "restored" : "restore-failed";
-        return ok;
+        SuspendRender.copyFile(canvas.backupPath, canvas.targetPath, ok => {
+            canvas.phase = ok ? "restored" : "restore-failed";
+            if (onDone)
+                onDone(ok);
+        });
     }
 
     // Force the next render to write even if nothing visible changed: restoring

@@ -66,16 +66,20 @@ Rectangle {
     }
 
     function applySuspendSetting(enabled) {
-        if (enabled && !suspendCanvas.backup()) {
+        if (!enabled) {
+            settingsStore.setSuspendImageEnabled(false);
+            suspendCanvas.invalidateSignature();
+            suspendCanvas.restore();
             return;
         }
 
-        settingsStore.setSuspendImageEnabled(enabled);
-
-        if (!enabled) {
-            suspendCanvas.invalidateSignature();
-            suspendCanvas.restore();
-        }
+        // The setting turns on only once the stock image is safely backed up — enabling it after a
+        // failed backup overwrites an image nothing can restore (ADR 0001). The backup reports
+        // asynchronously, so this cannot be a guard clause.
+        suspendCanvas.backup(ok => {
+            if (ok)
+                settingsStore.setSuspendImageEnabled(true);
+        });
     }
 
     Component.onCompleted: console.log("Habit Tracker loaded; size:", width, "x", height)

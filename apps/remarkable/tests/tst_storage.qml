@@ -57,6 +57,66 @@ TestCase {
         verify(Storage.isMissing(Storage.readJson(target)));
     }
 
+    // --- write reporting ----------------------------------------------------------------------
+
+    // A local-file write answers status 0 whether or not it landed, so success is established by
+    // reading the file back. Nothing else can tell the two apart.
+    function test_writeReportsSuccessOnceTheBytesLand() {
+        const target = path("reports-ok.json");
+        const errors = [];
+
+        Storage.writeJson(target, { a: 1 }, error => errors.push(error));
+
+        tryVerify(() => errors.length === 1, 2000, "the write never reported");
+        compare(errors[0], null);
+        compare(Storage.readJson(target).a, 1);
+    }
+
+    // The regression that mattered: this used to throw from the request's own callback, which
+    // throws into the event loop where no caller can catch it — so a write into a missing
+    // directory reported a clean save.
+    function test_writeReportsFailureForAMissingDirectory() {
+        const errors = [];
+
+        Storage.writeJson(`${TestPaths.tmpDir()}/no-such-dir/x.json`, { a: 1 }, error => errors.push(error));
+
+        tryVerify(() => errors.length === 1, 2000, "the failed write never reported");
+        verify(errors[0], "a failed write must report an error");
+        verify(errors[0].indexOf("no-such-dir") !== -1, `the message should name the file: ${errors[0]}`);
+    }
+
+    function test_binaryWriteReportsFailureForAMissingDirectory() {
+        const source = path("binary-source.bin");
+        Storage.writeFile(source, "some bytes");
+        tryVerify(() => Storage.readBinary(source) !== null, 2000);
+
+        const errors = [];
+        Storage.writeBinary(`${TestPaths.tmpDir()}/no-such-dir/y.bin`, Storage.readBinary(source), error => errors.push(error));
+
+        tryVerify(() => errors.length === 1, 2000, "the failed binary write never reported");
+        verify(errors[0], "a failed binary write must report an error");
+    }
+
+    function test_binaryRoundTripReportsSuccess() {
+        const source = path("binary-round-trip-src.bin");
+        const target = path("binary-round-trip-dst.bin");
+        Storage.writeFile(source, "0123456789");
+        tryVerify(() => Storage.readBinary(source) !== null, 2000);
+
+        const errors = [];
+        Storage.writeBinary(target, Storage.readBinary(source), error => errors.push(error));
+
+        tryVerify(() => errors.length === 1, 2000);
+        compare(errors[0], null);
+        compare(Storage.readBinary(target).byteLength, 10);
+    }
+
+    // An unreadable file answers with a zero-length buffer rather than nothing, so length is the
+    // real test — otherwise a missing suspend image copies as an empty one.
+    function test_readBinaryTreatsAnAbsentFileAsNothing() {
+        compare(Storage.readBinary(path("no-such-binary.bin")), null);
+    }
+
     // writeJson refuses a value that stringifies to nothing, so a serialize hook that returns
     // undefined truncates the file instead of silently emptying it. JsonStore turns the throw
     // into its saveFailed signal.

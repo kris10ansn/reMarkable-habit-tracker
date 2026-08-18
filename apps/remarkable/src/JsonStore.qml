@@ -68,10 +68,19 @@ QtObject {
         }
 
         try {
-            Storage.writeJson(jsonStore.filePath, jsonStore.serialize());
+            Storage.writeJson(jsonStore.filePath, jsonStore.serialize(), jsonStore._onWriteDone);
         } catch (e) {
-            console.warn("JsonStore: save failed for", jsonStore.filePath, "-", e);
-            jsonStore.saveFailed("Check that the data/ folder exists on the device.\n\n" + String(e));
+            jsonStore._onWriteDone(String(e));
+        }
+    }
+
+    // The write only reports once it has landed, so `saved` means the bytes are on disk rather
+    // than merely queued — which is what makes a missing data/ dir a visible modal instead of a
+    // silent no-op the session then believes it persisted.
+    function _onWriteDone(error) {
+        if (error) {
+            console.warn("JsonStore: save failed for", jsonStore.filePath, "-", error);
+            jsonStore.saveFailed("Check that the data/ folder exists on the device.\n\n" + error);
             return;
         }
 

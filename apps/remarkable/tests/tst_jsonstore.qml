@@ -194,6 +194,43 @@ TestCase {
         store.destroy();
     }
 
+    // The regression: a write into a missing dir used to report a clean save. Storage threw from
+    // the request's own callback, which throws into the event loop where _doSave's catch cannot
+    // see it, so the session carried on believing it had persisted.
+    function test_aSaveIntoAMissingDirectoryFails() {
+        const store = jsonStoreComponent.createObject(testCase, {
+            filePath: `${TestPaths.tmpDir()}/no-such-dir/roster.json`
+        });
+        tryVerify(() => store.isLoaded, 2000);
+        store.writes = { value: 1 };
+
+        const failed = saveFailedSpy.createObject(testCase, { target: store });
+        const saved = savedSpy.createObject(testCase, { target: store });
+        store._doSave();
+
+        tryCompare(failed, "count", 1, 2000);
+        compare(saved.count, 0, "a save that never landed must not report success");
+        verify(failed.signalArguments[0][0].indexOf("data/ folder") !== -1, "the message should name the likely cause");
+
+        saved.destroy();
+        failed.destroy();
+        store.destroy();
+    }
+
+    // `saved` means the bytes are on disk, not merely queued.
+    function test_savedFiresOnlyOnceTheWriteLands() {
+        const store = makeStore("saved-means-landed.json", { value: "landed" });
+        const spy = savedSpy.createObject(testCase, { target: store });
+
+        store._doSave();
+
+        tryCompare(spy, "count", 1, 2000);
+        compare(Storage.readJson(path("saved-means-landed.json")).value, "landed");
+
+        spy.destroy();
+        store.destroy();
+    }
+
     // Every read re-decides the flag, so navigating off an unreadable file and back onto a
     // readable one lifts the block.
     function test_reloadLiftsTheUnwritableBlock() {
