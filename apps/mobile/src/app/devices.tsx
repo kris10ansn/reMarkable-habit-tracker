@@ -45,7 +45,17 @@ export default function DevicesScreen() {
                         className="mb-3"
                     />
 
-                    {sessions.isPending ? (
+                    {sessions.fetchStatus === "idle" && sessions.isPending ? (
+                        // A disabled query stays `pending` forever (no Server URL to fetch
+                        // against), so `isPending` alone would spin here with nothing to resolve
+                        // it. `fetchStatus` is what tells the two apart.
+                        <Card>
+                            <Text className="text-[13px] text-ink-2">
+                                Set a Server URL on the Sync tab to see linked
+                                devices.
+                            </Text>
+                        </Card>
+                    ) : sessions.isPending ? (
                         <Loading />
                     ) : sessions.isError ? (
                         <Card>

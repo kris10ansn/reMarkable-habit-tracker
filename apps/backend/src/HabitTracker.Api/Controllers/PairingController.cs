@@ -1,3 +1,4 @@
+using HabitTracker.Api.Authentication;
 using HabitTracker.Api.Dtos;
 using HabitTracker.Api.Services;
 using Microsoft.AspNetCore.Authorization;

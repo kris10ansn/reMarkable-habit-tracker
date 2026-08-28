@@ -16,7 +16,6 @@ public class SessionsController(SessionService _sessions, ILogger<SessionsContro
     )
     {
         var sessions = await _sessions.ListSessionsAsync(cancellationToken);
-        _logger.LogInformation("Returned {SessionCount} sessions", sessions.Count);
 
         return Ok(sessions);
     }

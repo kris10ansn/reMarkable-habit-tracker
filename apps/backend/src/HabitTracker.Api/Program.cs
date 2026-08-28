@@ -130,75 +130,38 @@ builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 
-    // These must be partitioned per caller (RateLimitPartition.GetFixedWindowLimiter keyed on the
-    // caller's IP) rather than registered with AddFixedWindowLimiter, which creates ONE shared
-    // limiter for the whole app: a single attacker spending a policy's permits would otherwise lock
-    // out every other caller sharing it — every user's login, or the tablet's own pairing polls —
-    // until the window rolls over.
-    options.AddPolicy<string>(
-        RateLimitPolicies.Authentication,
-        httpContext =>
-            RateLimitPartition.GetFixedWindowLimiter(
-                PartitionKeyOf(httpContext),
-                _ => new FixedWindowRateLimiterOptions
-                {
-                    PermitLimit = 10,
-                    Window = TimeSpan.FromMinutes(5),
-                    QueueLimit = 0,
-                    AutoReplenishment = true,
-                }
-            )
-    );
+    // Every policy below is partitioned per caller (RateLimitPartition.GetFixedWindowLimiter keyed
+    // on the caller's IP) rather than registered with AddFixedWindowLimiter, which creates ONE
+    // shared limiter for the whole app: a single attacker spending a policy's permits would
+    // otherwise lock out every other caller sharing it — every user's login, or the tablet's own
+    // pairing polls — until the window rolls over.
+    void AddPerCallerFixedWindow(string policyName, int permitLimit, TimeSpan window) =>
+        options.AddPolicy<string>(
+            policyName,
+            httpContext =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    PartitionKeyOf(httpContext),
+                    _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = permitLimit,
+                        Window = window,
+                        QueueLimit = 0,
+                        AutoReplenishment = true,
+                    }
+                )
+        );
 
-    options.AddPolicy<string>(
-        RateLimitPolicies.PairingCodeRequest,
-        httpContext =>
-            RateLimitPartition.GetFixedWindowLimiter(
-                PartitionKeyOf(httpContext),
-                _ => new FixedWindowRateLimiterOptions
-                {
-                    PermitLimit = 10,
-                    Window = TimeSpan.FromMinutes(5),
-                    QueueLimit = 0,
-                    AutoReplenishment = true,
-                }
-            )
-    );
+    AddPerCallerFixedWindow(RateLimitPolicies.Authentication, 10, TimeSpan.FromMinutes(5));
+    AddPerCallerFixedWindow(RateLimitPolicies.PairingCodeRequest, 10, TimeSpan.FromMinutes(5));
 
     // The tablet polls every 3s while its settings page is visible (20/min), so 40/min leaves room
     // for a second device polling concurrently. Against a 32^6 ≈ 1.07e9-code space, a brute-forcer
     // capped here gets at most ~200 guesses over a code's whole 5-minute life — nowhere close.
-    options.AddPolicy<string>(
-        RateLimitPolicies.PairingPoll,
-        httpContext =>
-            RateLimitPartition.GetFixedWindowLimiter(
-                PartitionKeyOf(httpContext),
-                _ => new FixedWindowRateLimiterOptions
-                {
-                    PermitLimit = 40,
-                    Window = TimeSpan.FromMinutes(1),
-                    QueueLimit = 0,
-                    AutoReplenishment = true,
-                }
-            )
-    );
+    AddPerCallerFixedWindow(RateLimitPolicies.PairingPoll, 40, TimeSpan.FromMinutes(1));
 
     // Guards the authenticated pairing lookup/approve endpoints (see RateLimitPolicies.PairingApproval
     // for why these can't be partitioned by user id instead).
-    options.AddPolicy<string>(
-        RateLimitPolicies.PairingApproval,
-        httpContext =>
-            RateLimitPartition.GetFixedWindowLimiter(
-                PartitionKeyOf(httpContext),
-                _ => new FixedWindowRateLimiterOptions
-                {
-                    PermitLimit = 30,
-                    Window = TimeSpan.FromMinutes(5),
-                    QueueLimit = 0,
-                    AutoReplenishment = true,
-                }
-            )
-    );
+    AddPerCallerFixedWindow(RateLimitPolicies.PairingApproval, 30, TimeSpan.FromMinutes(5));
 
     options.OnRejected = (context, cancellationToken) =>
     {

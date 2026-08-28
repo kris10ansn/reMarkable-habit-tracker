@@ -1,3 +1,4 @@
+using HabitTracker.Api.Authentication;
 using HabitTracker.Api.Dtos;
 using HabitTracker.Api.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -28,32 +29,23 @@ public class AuthController(AuthService _auth, ILogger<AuthController> _logger) 
 
             case SignupOutcome.EmailAlreadyRegistered:
                 _logger.LogInformation("Signup rejected: email already registered");
-                return Conflict(
-                    new ProblemDetails
-                    {
-                        Status = StatusCodes.Status409Conflict,
-                        Title = "Email already registered.",
-                    }
+                return Problem(
+                    title: "Email already registered.",
+                    statusCode: StatusCodes.Status409Conflict
                 );
 
             case SignupOutcome.InviteRequired:
                 _logger.LogInformation("Signup rejected: invite code required");
-                return BadRequest(
-                    new ProblemDetails
-                    {
-                        Status = StatusCodes.Status400BadRequest,
-                        Title = "An invite code is required.",
-                    }
+                return Problem(
+                    title: "An invite code is required.",
+                    statusCode: StatusCodes.Status400BadRequest
                 );
 
             case SignupOutcome.InviteInvalid:
                 _logger.LogInformation("Signup rejected: invite code invalid, used, or expired");
-                return BadRequest(
-                    new ProblemDetails
-                    {
-                        Status = StatusCodes.Status400BadRequest,
-                        Title = "The invite code is invalid, already used, or expired.",
-                    }
+                return Problem(
+                    title: "The invite code is invalid, already used, or expired.",
+                    statusCode: StatusCodes.Status400BadRequest
                 );
 
             default:
@@ -75,12 +67,9 @@ public class AuthController(AuthService _auth, ILogger<AuthController> _logger) 
             // Same 401 for "no such email" and "wrong password" — a distinct message either way
             // would let a caller enumerate registered emails.
             _logger.LogInformation("Login failed");
-            return Unauthorized(
-                new ProblemDetails
-                {
-                    Status = StatusCodes.Status401Unauthorized,
-                    Title = "Invalid email or password.",
-                }
+            return Problem(
+                title: "Invalid email or password.",
+                statusCode: StatusCodes.Status401Unauthorized
             );
         }
 

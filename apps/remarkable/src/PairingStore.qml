@@ -168,11 +168,10 @@ QtObject {
         }
     }
 
-    // The PairingStatus spelling ("Pending"/"Approved"/"Expired") is load-bearing across three
-    // apps — compared verbatim, never lower-cased. Guarded on still being "waiting" so a second
-    // Approved (which the server never actually sends — a poll after approval answers Expired
-    // with a null token) or any other stray late reply cannot re-store a token or resurrect a
-    // stopped poll.
+    // Branches through Pairing.isApproved/isExpired so the load-bearing PairingStatus spelling
+    // lives in one file, not two. Guarded on still being "waiting" so a second Approved (which the
+    // server never actually sends — a poll after approval answers Expired with a null token) or
+    // any other stray late reply cannot re-store a token or resurrect a stopped poll.
     function _onPollResponse(xhr) {
         if (pairingStore.status !== "waiting") {
             return;
@@ -190,7 +189,7 @@ QtObject {
             return;
         }
 
-        if (parsed.status === "Approved") {
+        if (Pairing.isApproved(parsed.status)) {
             pairingStore._pollTimer.stop();
             if (pairingStore.settingsStore) {
                 pairingStore.settingsStore.setToken(parsed.token);
@@ -201,7 +200,7 @@ QtObject {
             return;
         }
 
-        if (parsed.status === "Expired") {
+        if (Pairing.isExpired(parsed.status)) {
             pairingStore._pollTimer.stop();
             pairingStore.status = "expired";
             return;

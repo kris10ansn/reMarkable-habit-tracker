@@ -18,6 +18,13 @@ public enum PairingApprovalOutcome
 /// a short code and polls it; an authenticated phone looks the code up, shows the requesting
 /// device's name, and approves; the tablet's next poll gets a bearer token — the only time that
 /// token exists on the wire for this flow.
+/// <para>
+/// Every method taking a <c>code</c> runs it through <see cref="AuthTokens.NormalizeCode"/> first —
+/// lossless, since codes are minted from the uppercase-only
+/// <see cref="AuthTokens.CodeAlphabet"/>, and it rescues a phone keyboard that auto-lowercased what
+/// the tablet displayed. Kept here rather than at the HTTP edge so it is impossible for a caller to
+/// skip.
+/// </para>
 /// </summary>
 public class PairingService
 {
@@ -71,13 +78,11 @@ public class PairingService
         CancellationToken cancellationToken = default
     )
     {
-        // Normalize the user-typed code (see AuthTokens.NormalizeCode) — codes are minted from
-        // AuthTokens.CodeAlphabet, which is uppercase-only, so this is lossless.
-        code = AuthTokens.NormalizeCode(code);
+        var normalizedCode = AuthTokens.NormalizeCode(code);
 
         var now = DateTimeOffset.UtcNow;
         var pairing = await _db.PairingCodes.FirstOrDefaultAsync(
-            p => p.Code == code && p.ExpiresAt > now,
+            p => p.Code == normalizedCode && p.ExpiresAt > now,
             cancellationToken
         );
 
@@ -95,12 +100,10 @@ public class PairingService
         CancellationToken cancellationToken = default
     )
     {
-        // Normalize the user-typed code (see AuthTokens.NormalizeCode) — codes are minted from
-        // AuthTokens.CodeAlphabet, which is uppercase-only, so this is lossless.
-        code = AuthTokens.NormalizeCode(code);
+        var normalizedCode = AuthTokens.NormalizeCode(code);
 
         var pairing = await _db.PairingCodes.FirstOrDefaultAsync(
-            p => p.Code == code,
+            p => p.Code == normalizedCode,
             cancellationToken
         );
         if (pairing is null)
@@ -135,12 +138,10 @@ public class PairingService
         CancellationToken cancellationToken = default
     )
     {
-        // Normalize the user-typed code (see AuthTokens.NormalizeCode) — codes are minted from
-        // AuthTokens.CodeAlphabet, which is uppercase-only, so this is lossless.
-        code = AuthTokens.NormalizeCode(code);
+        var normalizedCode = AuthTokens.NormalizeCode(code);
 
         var pairing = await _db.PairingCodes.FirstOrDefaultAsync(
-            p => p.Code == code,
+            p => p.Code == normalizedCode,
             cancellationToken
         );
         if (pairing is null)

@@ -4,7 +4,7 @@
 // Split per entity; this index is the public surface (streaksKey stays internal).
 export {
     authErrorReason,
-    isUnauthorized,
+    invalidateSessionOnUnauthorized,
     pairingErrorReason,
     useAuthSession,
     useLogin,

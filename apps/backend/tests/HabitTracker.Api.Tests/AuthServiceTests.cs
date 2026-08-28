@@ -4,6 +4,7 @@ using HabitTracker.Api.Entities;
 using HabitTracker.Api.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace HabitTracker.Api.Tests;
 
@@ -16,7 +17,13 @@ public class AuthServiceTests
     private static HabitTrackerDbContext NewEmptyDb() => AuthTestContext.NewEmptyDb("auth-service");
 
     private static AuthService NewAuth(HabitTrackerDbContext db, CurrentUser currentUser) =>
-        new(db, new SessionService(db, currentUser), PasswordHasher, currentUser);
+        new(
+            db,
+            new SessionService(db, currentUser),
+            PasswordHasher,
+            currentUser,
+            NullLogger<AuthService>.Instance
+        );
 
     // --- Bootstrap (AUTH_PLAN decision 3) ---
 
@@ -268,6 +275,46 @@ public class AuthServiceTests
         // let an attacker enumerate registered emails.
         Assert.Null(wrongPassword);
         Assert.Null(unknownEmail);
+    }
+
+    [Fact]
+    public async Task LoginAsync_WithAnUnknownEmail_StillVerifiesAPasswordHash_SoTheTwoFailuresCostTheSame()
+    {
+        // The shared 401 only hides which failure occurred if both paths do the same work. Timing
+        // itself is too flaky to assert, so this pins the mechanism instead: exactly one hash
+        // verification, whether or not the email resolves to a user.
+        using var db = NewEmptyDb();
+        var countingHasher = new CountingPasswordHasher();
+        var auth = new AuthService(
+            db,
+            new SessionService(db, CurrentUser.Anonymous),
+            countingHasher,
+            CurrentUser.Anonymous,
+            NullLogger<AuthService>.Instance
+        );
+
+        await auth.LoginAsync(new LoginRequest("nobody@example.com", "any-password", "Phone"));
+
+        Assert.Equal(1, countingHasher.VerifyCount);
+    }
+
+    private sealed class CountingPasswordHasher : IPasswordHasher<User>
+    {
+        private readonly IPasswordHasher<User> _inner = new PasswordHasher<User>();
+
+        internal int VerifyCount { get; private set; }
+
+        public string HashPassword(User user, string password) => _inner.HashPassword(user, password);
+
+        public PasswordVerificationResult VerifyHashedPassword(
+            User user,
+            string hashedPassword,
+            string providedPassword
+        )
+        {
+            VerifyCount++;
+            return _inner.VerifyHashedPassword(user, hashedPassword, providedPassword);
+        }
     }
 
     // --- Logout ---

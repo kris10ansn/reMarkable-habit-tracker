@@ -1,4 +1,4 @@
-namespace HabitTracker.Api.Services;
+namespace HabitTracker.Api.Authentication;
 
 /// <summary>
 /// Names of the fixed-window rate-limit policies registered in <c>Program.cs</c>, applied via

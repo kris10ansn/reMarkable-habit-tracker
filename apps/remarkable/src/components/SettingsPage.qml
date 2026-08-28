@@ -33,6 +33,11 @@ Item {
     readonly property bool urlDirty: stagedUrl.trim() !== serverUrl
     readonly property bool dirty: suspendImageDirty || showPrivateDirty || urlDirty
 
+    // A server address that is both set and committed. Both network actions gate on it: a staged
+    // edit is not a server yet, so acting on the old address would talk to the wrong host.
+    readonly property bool serverUrlReady: serverUrl.trim() !== "" && !urlDirty
+    readonly property bool pairingRequestInFlight: pairingStatus === "requesting" || pairingStatus === "waiting"
+
     function _resync() {
         settingsPage.staged = settingsPage.suspendImageEnabled;
         settingsPage.stagedShowPrivate = settingsPage.showPrivateHabits;
@@ -157,7 +162,7 @@ Item {
                 width: App.Theme.quitButtonWidth
                 height: App.Theme.quitButtonHeight
                 text: "Sync now"
-                disabled: settingsPage.serverUrl.trim() === "" || settingsPage.urlDirty
+                disabled: !settingsPage.serverUrlReady
                 onClicked: settingsPage.syncNowRequested()
             }
 
@@ -185,7 +190,7 @@ Item {
                 width: App.Theme.quitButtonWidth
                 height: App.Theme.quitButtonHeight
                 text: settingsPage.pairingStatus === "expired" ? "New code" : "Connect"
-                disabled: settingsPage.serverUrl.trim() === "" || settingsPage.urlDirty || settingsPage.pairingStatus === "requesting" || settingsPage.pairingStatus === "waiting"
+                disabled: !settingsPage.serverUrlReady || settingsPage.pairingRequestInFlight
                 onClicked: settingsPage.connectRequested()
             }
 

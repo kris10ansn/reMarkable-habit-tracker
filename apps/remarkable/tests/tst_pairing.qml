@@ -68,4 +68,23 @@ TestCase {
             compare(Pairing.parsePollResponse(body), null, `${JSON.stringify(body)} should be rejected`);
         });
     }
+
+    // --- terminal-status predicates -------------------------------------------------------------
+
+    // PairingStore branches on these rather than re-spelling "Approved"/"Expired" itself, so the
+    // load-bearing spelling lives in Pairing.js alone. Case sensitivity is the whole point.
+
+    function test_isApprovedMatchesOnlyTheExactSpelling() {
+        verify(Pairing.isApproved("Approved"));
+        ["approved", "APPROVED", "Pending", "Expired", "", undefined].forEach(status => {
+            verify(!Pairing.isApproved(status), `${status} should not read as approved`);
+        });
+    }
+
+    function test_isExpiredMatchesOnlyTheExactSpelling() {
+        verify(Pairing.isExpired("Expired"));
+        ["expired", "EXPIRED", "Pending", "Approved", "", undefined].forEach(status => {
+            verify(!Pairing.isExpired(status), `${status} should not read as expired`);
+        });
+    }
 }

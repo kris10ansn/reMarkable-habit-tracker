@@ -44,7 +44,7 @@ function parsePollResponse(body) {
     if (!body || typeof body !== "object") {
         return null;
     }
-    if ([PENDING, APPROVED, EXPIRED].indexOf(body.status) === -1) {
+    if (![PENDING, APPROVED, EXPIRED].includes(body.status)) {
         return null;
     }
     if (body.status === APPROVED && typeof body.token !== "string") {
@@ -55,4 +55,14 @@ function parsePollResponse(body) {
         status: body.status,
         token: typeof body.token === "string" ? body.token : null,
     };
+}
+
+// The two terminal statuses, asked rather than re-spelled: PairingStore branches on the outcome of
+// a poll, and the member-name spelling stays in this file only.
+function isApproved(status) {
+    return status === APPROVED;
+}
+
+function isExpired(status) {
+    return status === EXPIRED;
 }

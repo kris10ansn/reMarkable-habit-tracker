@@ -13,7 +13,7 @@ namespace HabitTracker.Api.Services;
 public sealed class CurrentUser
 {
     private readonly Guid? _userId;
-    private readonly Guid _sessionId;
+    private readonly Guid? _sessionId;
     private readonly bool _isAdmin;
 
     public bool IsAuthenticated => _userId is not null;
@@ -21,7 +21,15 @@ public sealed class CurrentUser
     public Guid UserId =>
         _userId ?? throw new InvalidOperationException("No authenticated user for this request.");
 
-    public Guid SessionId => _sessionId;
+    /// <summary>
+    /// Throws rather than answering <see cref="Guid.Empty"/>, deliberately: an empty id would sail
+    /// through a scoped query as a silent no-match, so an anonymous caller reaching a
+    /// session-scoped path would delete nothing and be told it worked. Same contract as
+    /// <see cref="UserId"/> — the seam fails loudly on both halves or on neither.
+    /// </summary>
+    public Guid SessionId =>
+        _sessionId
+        ?? throw new InvalidOperationException("No authenticated session for this request.");
 
     public bool IsAdmin => _isAdmin;
 
@@ -32,7 +40,7 @@ public sealed class CurrentUser
     private CurrentUser()
     {
         _userId = null;
-        _sessionId = Guid.Empty;
+        _sessionId = null;
         _isAdmin = false;
     }
 
@@ -43,7 +51,12 @@ public sealed class CurrentUser
         _isAdmin = isAdmin;
     }
 
-    /// <summary>Convenience overload for tests that only care about the owning user.</summary>
+    /// <summary>
+    /// Convenience overload for tests that only care about the owning user. Its
+    /// <see cref="Guid.Empty"/> session is a real-but-unmatchable id, not the absence
+    /// <see cref="Anonymous"/> carries: a test that lists sessions still gets
+    /// <c>IsCurrentDevice: false</c> for every row instead of a throw.
+    /// </summary>
     public CurrentUser(Guid userId)
         : this(userId, Guid.Empty, isAdmin: false) { }
 

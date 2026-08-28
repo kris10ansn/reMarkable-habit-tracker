@@ -76,6 +76,14 @@ dotnet ef migrations add <Name> --project src/HabitTracker.Api
 pnpm migrate      # = dotnet ef database update
 ```
 
+> **`AddAuthentication` is destructive, on purpose.** It deletes the stub user that
+> `InitialCreate` seeded — and `Habit.UserId` cascades, as does `Entry.HabitId` — so applying it to
+> a database that predates auth drops **every habit and entry** in it. That is intended: those rows
+> belong to an identity that no longer exists, and there is no honest way to guess which real
+> account should inherit them. Take a `pg_dump` first if a pre-auth deployment holds anything worth
+> keeping; a client that still has its local copy will repopulate the store on its first Sync after
+> signing in.
+
 ## API
 
 `/api/habits` — list / get / create / update / delete habits for the current user.

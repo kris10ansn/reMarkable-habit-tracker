@@ -23,22 +23,35 @@ public record SignupResult(SignupOutcome Outcome, AuthenticationResponse? Respon
 /// </summary>
 public class AuthService
 {
+    /// <summary>
+    /// A well-formed hash of a password nobody holds, verified against when
+    /// <see cref="LoginAsync"/> finds no user — see there for why. Static because this service is
+    /// scoped: an instance field would spend a PBKDF2 on every request that constructs one.
+    /// </summary>
+    private static readonly string UnknownEmailPasswordHash = new PasswordHasher<User>().HashPassword(
+        new User(),
+        "no user holds this password"
+    );
+
     private readonly HabitTrackerDbContext _db;
     private readonly SessionService _sessions;
     private readonly IPasswordHasher<User> _passwordHasher;
     private readonly CurrentUser _currentUser;
+    private readonly ILogger<AuthService> _logger;
 
     public AuthService(
         HabitTrackerDbContext db,
         SessionService sessions,
         IPasswordHasher<User> passwordHasher,
-        CurrentUser currentUser
+        CurrentUser currentUser,
+        ILogger<AuthService> logger
     )
     {
         _db = db;
         _sessions = sessions;
         _passwordHasher = passwordHasher;
         _currentUser = currentUser;
+        _logger = logger;
     }
 
     /// <summary>
@@ -129,7 +142,7 @@ public class AuthService
             // transaction above rolls back automatically on this early return.
             return new SignupResult(SignupOutcome.InviteInvalid, null);
         }
-        catch (DbUpdateException)
+        catch (DbUpdateException exception)
         {
             // The AnyAsync pre-check above is a fast path, not a guarantee: a concurrent duplicate
             // signup can still lose to the IX_Users_Email unique index right here. That index is
@@ -139,7 +152,13 @@ public class AuthService
             // unique-violation, but telling a real unique-violation apart from other DbUpdateException
             // causes would need a Npgsql-specific dependency (e.g. inspecting a PostgresException's
             // SqlState), which this layer deliberately does not take. Widening this catch is the
-            // trade-off for staying provider-agnostic.
+            // trade-off for staying provider-agnostic — and logging is what keeps that trade-off
+            // honest: a genuine write fault reported to the caller as "email taken" would otherwise
+            // leave no trace anywhere.
+            _logger.LogWarning(
+                exception,
+                "Signup save failed; answering as email-already-registered (this catch cannot tell a unique-violation from a real fault — see AuthService)"
+            );
             return new SignupResult(SignupOutcome.EmailAlreadyRegistered, null);
         }
 
@@ -161,6 +180,12 @@ public class AuthService
     /// Verifies credentials and mints a session. Returns null for BOTH an unknown email and a wrong
     /// password — the caller must answer both with the same generic 401, or the response shape
     /// itself would let an attacker enumerate registered emails.
+    /// <para>
+    /// An unknown email is verified against <see cref="UnknownEmailPasswordHash"/> rather than
+    /// returning early, so the two cases cost the same PBKDF2 work. Returning early would make the
+    /// unknown-email case measurably faster and hand back through timing exactly the enumeration
+    /// the shared 401 exists to deny.
+    /// </para>
     /// </summary>
     public async Task<AuthenticationResponse?> LoginAsync(
         LoginRequest request,
@@ -169,13 +194,16 @@ public class AuthService
     {
         var email = request.Email.Trim().ToLowerInvariant();
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == email, cancellationToken);
-        if (user is null)
-        {
-            return null;
-        }
 
-        var verification = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, request.Password);
-        if (verification == PasswordVerificationResult.Failed)
+        // PasswordHasher<TUser> ignores its user argument entirely; the placeholder only satisfies
+        // the non-nullable signature on the unknown-email path.
+        var verification = _passwordHasher.VerifyHashedPassword(
+            user ?? new User(),
+            user?.PasswordHash ?? UnknownEmailPasswordHash,
+            request.Password
+        );
+
+        if (user is null || verification == PasswordVerificationResult.Failed)
         {
             return null;
         }
