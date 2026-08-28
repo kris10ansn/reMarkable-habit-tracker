@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using HabitTracker.Api.Dtos;
+using Microsoft.AspNetCore.Mvc;
 
 namespace HabitTracker.Api.Tests;
 
@@ -107,6 +108,94 @@ public class AuthEndpointsTests
             new SignupRequest("long-enough@example.com", "1234567890", "Device", null)
         );
         Assert.Equal(HttpStatusCode.OK, longEnough.StatusCode);
+    }
+
+    [Fact]
+    public async Task Signup_EachRejectionOutcome_KeepsItsOwnStatusCodeAndAProblemDetailsBody()
+    {
+        // AuthController answers these three through ControllerBase.Problem() rather than
+        // Conflict()/BadRequest() with a hand-built ProblemDetails. The status code is the
+        // contract mobile's authErrorReason() switches on (409 -> "already registered",
+        // 400 -> "invite invalid"), so pin the code AND that the body is still problem+json —
+        // a helper that silently normalised either would break the client with nothing failing here.
+        using var factory = new AuthTestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        await SignUpAndGetTokenAsync(client, "owner@example.com", "correct-horse-battery", "Laptop");
+
+        var duplicateEmail = await client.PostAsJsonAsync(
+            "/api/auth/signup",
+            new SignupRequest("owner@example.com", "another-good-password", "Phone", null)
+        );
+        Assert.Equal(HttpStatusCode.Conflict, duplicateEmail.StatusCode);
+        await AssertProblemDetailsAsync(duplicateEmail, "Email already registered.");
+
+        // Users is no longer empty, so the bootstrap exemption is spent and an invite is required.
+        var missingInvite = await client.PostAsJsonAsync(
+            "/api/auth/signup",
+            new SignupRequest("second@example.com", "another-good-password", "Phone", null)
+        );
+        Assert.Equal(HttpStatusCode.BadRequest, missingInvite.StatusCode);
+        await AssertProblemDetailsAsync(missingInvite, "An invite code is required.");
+
+        var unknownInvite = await client.PostAsJsonAsync(
+            "/api/auth/signup",
+            new SignupRequest("third@example.com", "another-good-password", "Phone", "NOSUCHCODE")
+        );
+        Assert.Equal(HttpStatusCode.BadRequest, unknownInvite.StatusCode);
+        await AssertProblemDetailsAsync(
+            unknownInvite,
+            "The invite code is invalid, already used, or expired."
+        );
+    }
+
+    [Fact]
+    public async Task Login_WithWrongCredentials_Returns401WithAProblemDetailsBody()
+    {
+        using var factory = new AuthTestWebApplicationFactory();
+        using var client = factory.CreateClient();
+
+        await SignUpAndGetTokenAsync(client, "owner@example.com", "correct-horse-battery", "Laptop");
+
+        var wrongPassword = await client.PostAsJsonAsync(
+            "/api/auth/login",
+            new LoginRequest("owner@example.com", "not-the-right-password", "Phone")
+        );
+        var unknownEmail = await client.PostAsJsonAsync(
+            "/api/auth/login",
+            new LoginRequest("nobody@example.com", "correct-horse-battery", "Phone")
+        );
+
+        // Indistinguishable answers, not merely both-401: a caller able to tell the two apart
+        // could enumerate registered emails. Compared field by field rather than as raw bodies,
+        // since traceId is per-request by design and would differ between any two calls.
+        Assert.Equal(HttpStatusCode.Unauthorized, wrongPassword.StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, unknownEmail.StatusCode);
+
+        var wrongPasswordProblem = await AssertProblemDetailsAsync(
+            wrongPassword,
+            "Invalid email or password."
+        );
+        var unknownEmailProblem = await AssertProblemDetailsAsync(
+            unknownEmail,
+            "Invalid email or password."
+        );
+        Assert.Equal(wrongPasswordProblem.Detail, unknownEmailProblem.Detail);
+        Assert.Equal(wrongPasswordProblem.Type, unknownEmailProblem.Type);
+    }
+
+    private static async Task<ProblemDetails> AssertProblemDetailsAsync(
+        HttpResponseMessage response,
+        string expectedTitle
+    )
+    {
+        Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
+
+        var problem = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        Assert.Equal(expectedTitle, problem!.Title);
+        Assert.Equal((int)response.StatusCode, problem.Status);
+
+        return problem;
     }
 
     [Fact]
