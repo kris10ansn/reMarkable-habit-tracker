@@ -20,6 +20,8 @@ type AppScreenProps = {
     title: string;
     eyebrow?: string;
     subtitle?: string;
+    // Forwarded to ScreenHeader — set on pushed (non-tab) screens. See ScreenHeader's own doc.
+    onBack?: () => void;
     scroll?: boolean;
     // Scroll a focused input above the keyboard (e.g. the add-habit row at the
     // bottom of the Habits list). Uses react-native-keyboard-controller, which
@@ -35,6 +37,7 @@ export function AppScreen({
     title,
     eyebrow,
     subtitle,
+    onBack,
     scroll = true,
     avoidKeyboard = false,
     children,
@@ -45,7 +48,12 @@ export function AppScreen({
             className="flex-1 bg-surface-2"
             edges={["top", "left", "right"]}
         >
-            <ScreenHeader eyebrow={eyebrow} title={title} subtitle={subtitle} />
+            <ScreenHeader
+                eyebrow={eyebrow}
+                title={title}
+                subtitle={subtitle}
+                onBack={onBack}
+            />
             {scroll ? (
                 avoidKeyboard ? (
                     <KeyboardAwareScrollView

@@ -9,10 +9,20 @@ Item {
     property string serverUrl: ""
     property string syncStatusText: ""
 
+    // Tablet pairing (Connect flow). pairingConnected reflects whether SettingsStore is holding a
+    // token; pairingStatus is PairingStore's own transient phase: "" (idle) | "requesting" |
+    // "waiting" (code on screen, polling) | "expired" | "error".
+    property bool pairingConnected: false
+    property string pairingStatus: ""
+    property string pairingCode: ""
+    property string pairingErrorMessage: ""
+
     signal applyRequested(bool value)
     signal showPrivateHabitsApplied(bool value)
     signal serverUrlApplied(string url)
     signal syncNowRequested
+    signal connectRequested
+    signal disconnectRequested
     signal backRequested
 
     property bool staged: false
@@ -27,6 +37,14 @@ Item {
         settingsPage.staged = settingsPage.suspendImageEnabled;
         settingsPage.stagedShowPrivate = settingsPage.showPrivateHabits;
         settingsPage.stagedUrl = settingsPage.serverUrl;
+    }
+
+    function _pairingHintText() {
+        if (settingsPage.pairingStatus === "requesting") return "Requesting a code…";
+        if (settingsPage.pairingStatus === "expired") return "That code expired.";
+        if (settingsPage.pairingStatus === "error") return settingsPage.pairingErrorMessage;
+
+        return "";
     }
 
     Component.onCompleted: settingsPage._resync()
@@ -151,6 +169,83 @@ Item {
                 opacity: App.Theme.fadedOpacity
                 visible: text.length > 0
             }
+        }
+
+        Text {
+            text: "Tablet pairing"
+            font.pixelSize: App.Theme.labelFont
+            color: App.Theme.fg
+        }
+
+        Row {
+            spacing: App.Theme.buttonGap
+            visible: !settingsPage.pairingConnected
+
+            AppButton {
+                width: App.Theme.quitButtonWidth
+                height: App.Theme.quitButtonHeight
+                text: settingsPage.pairingStatus === "expired" ? "New code" : "Connect"
+                disabled: settingsPage.serverUrl.trim() === "" || settingsPage.urlDirty || settingsPage.pairingStatus === "requesting" || settingsPage.pairingStatus === "waiting"
+                onClicked: settingsPage.connectRequested()
+            }
+
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: settingsPage._pairingHintText()
+                font.pixelSize: App.Theme.labelFont
+                color: App.Theme.fg
+                opacity: App.Theme.fadedOpacity
+                visible: text.length > 0
+            }
+        }
+
+        // The code itself: shown large, since it's read off this e-ink screen and typed into the
+        // phone. The unambiguous-alphabet choice (no 0/O/1/I) is the server's; this just displays
+        // it plainly.
+        Text {
+            visible: settingsPage.pairingStatus === "waiting"
+            text: settingsPage.pairingCode
+            font.pixelSize: App.Theme.scrollFont
+            font.bold: true
+            color: App.Theme.fg
+        }
+
+        Text {
+            visible: settingsPage.pairingStatus === "waiting"
+            text: "Enter this code on your phone to connect this reMarkable."
+            font.pixelSize: App.Theme.labelFont
+            color: App.Theme.fg
+        }
+
+        Row {
+            spacing: App.Theme.buttonGap
+            visible: settingsPage.pairingConnected
+
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: "Connected"
+                font.pixelSize: App.Theme.labelFont
+                color: App.Theme.fg
+            }
+
+            AppButton {
+                width: App.Theme.quitButtonWidth
+                height: App.Theme.quitButtonHeight
+                text: "Disconnect"
+                onClicked: settingsPage.disconnectRequested()
+            }
+        }
+
+        // Disconnecting here drops only this device's local copy of the token — the server-side
+        // session survives until it's revoked from the phone's linked-devices list.
+        Text {
+            visible: settingsPage.pairingConnected
+            width: Math.min(parent.width, 900)
+            text: "Disconnecting here signs out only this device. Revoke it for good from your phone's linked devices."
+            font.pixelSize: App.Theme.dayLabelFont
+            color: App.Theme.fg
+            opacity: App.Theme.fadedOpacity
+            wrapMode: Text.WordWrap
         }
     }
 

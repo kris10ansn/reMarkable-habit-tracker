@@ -8,23 +8,15 @@ namespace HabitTracker.Api.Tests;
 
 public class HabitServiceTests
 {
-    // A fresh in-memory store per test, with the stub user seeded (via HasData).
-    private static HabitTrackerDbContext NewDb()
-    {
-        var options = new DbContextOptionsBuilder<HabitTrackerDbContext>()
-            .UseInMemoryDatabase($"habits-{Guid.NewGuid()}")
-            .Options;
-
-        var db = new HabitTrackerDbContext(options);
-        db.Database.EnsureCreated();
-        return db;
-    }
+    // A fresh in-memory store per test, seeded with one test user.
+    private static HabitTrackerDbContext NewDb(out Guid userId) =>
+        SyncTestContext.NewDb("habits", out userId);
 
     [Fact]
     public async Task CreateHabit_AssignsSequentialPositions_AndStampsTimestamps()
     {
-        using var db = NewDb();
-        var service = new HabitService(db, new CurrentUser());
+        using var db = NewDb(out var userId);
+        var service = new HabitService(db, new CurrentUser(userId));
 
         var first = await service.CreateHabitAsync(new CreateHabitRequest("Read", Polarity.Positive));
         var second = await service.CreateHabitAsync(
@@ -47,8 +39,8 @@ public class HabitServiceTests
     [Fact]
     public async Task GetHabits_ReturnsOnlyCurrentUsersHabits_OrderedByPosition()
     {
-        using var db = NewDb();
-        var service = new HabitService(db, new CurrentUser());
+        using var db = NewDb(out var userId);
+        var service = new HabitService(db, new CurrentUser(userId));
         await service.CreateHabitAsync(new CreateHabitRequest("Read", Polarity.Positive));
 
         // A habit owned by a different user must not leak through.
@@ -75,8 +67,8 @@ public class HabitServiceTests
     [Fact]
     public async Task UpdateHabit_ChangesFields_ForOwnedHabit()
     {
-        using var db = NewDb();
-        var service = new HabitService(db, new CurrentUser());
+        using var db = NewDb(out var userId);
+        var service = new HabitService(db, new CurrentUser(userId));
         var created = await service.CreateHabitAsync(
             new CreateHabitRequest("Read", Polarity.Positive)
         );
@@ -95,8 +87,8 @@ public class HabitServiceTests
     [Fact]
     public async Task UpdateHabit_ReturnsNull_ForUnknownId()
     {
-        using var db = NewDb();
-        var service = new HabitService(db, new CurrentUser());
+        using var db = NewDb(out var userId);
+        var service = new HabitService(db, new CurrentUser(userId));
 
         var updated = await service.UpdateHabitAsync(
             Guid.NewGuid(),
@@ -109,8 +101,8 @@ public class HabitServiceTests
     [Fact]
     public async Task CreateHabit_DefaultsIsPrivateToFalse()
     {
-        using var db = NewDb();
-        var service = new HabitService(db, new CurrentUser());
+        using var db = NewDb(out var userId);
+        var service = new HabitService(db, new CurrentUser(userId));
 
         var created = await service.CreateHabitAsync(new CreateHabitRequest("Read", Polarity.Positive));
 
@@ -122,8 +114,8 @@ public class HabitServiceTests
     {
         // UpdateHabitRequest has no IsPrivate field — only Sync owns that flag's wire path — so a
         // REST update must not clear it back to false as a side effect of touching other fields.
-        using var db = NewDb();
-        var service = new HabitService(db, new CurrentUser());
+        using var db = NewDb(out var userId);
+        var service = new HabitService(db, new CurrentUser(userId));
         var created = await service.CreateHabitAsync(
             new CreateHabitRequest("Read", Polarity.Positive)
         );
@@ -143,8 +135,8 @@ public class HabitServiceTests
     [Fact]
     public async Task DeleteHabit_RemovesOwnedHabit_AndReportsMissing()
     {
-        using var db = NewDb();
-        var service = new HabitService(db, new CurrentUser());
+        using var db = NewDb(out var userId);
+        var service = new HabitService(db, new CurrentUser(userId));
         var created = await service.CreateHabitAsync(
             new CreateHabitRequest("Read", Polarity.Positive)
         );

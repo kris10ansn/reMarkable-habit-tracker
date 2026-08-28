@@ -11,7 +11,8 @@ in [`CONTEXT.md`](./CONTEXT.md) and the agent guidance in [`CLAUDE.md`](./CLAUDE
 src/HabitTracker.Api/        single Web API project, folder layers:
   Controllers/               HTTP endpoints, DTOs in / out
   Services/                  app logic (talks to DbContext directly)
-  Entities/                  EF entities + domain enums (Polarity, Outcome)
+  Entities/                  EF entities + domain enums (Polarity, Outcome, PairingStatus)
+  Authentication/            bearer-token auth handler, claim names, OpenAPI security scheme
   Data/                      DbContext, model config, seed, timestamp stamping
   Dtos/                      request/response records
   Migrations/                EF Core migrations (schema source of truth)
@@ -19,13 +20,11 @@ tests/HabitTracker.Api.Tests/  xUnit tests (EF in-memory)
 docker-compose.yml             local PostgreSQL
 ```
 
-Auth is deferred: every request acts as a single seeded **stub user** (`CurrentUser`) — the one seam
-to replace when authentication lands.
-
-> **The API is unauthenticated by design, not by oversight.** Anyone who can reach it can read and
-> overwrite every habit and entry. Run it on a trusted network only — home LAN, Tailscale, or a VPN
-> — and never expose it to the open internet. This is a deliberate v1 limitation; it is recorded
-> here so nobody deploys it publicly assuming auth exists somewhere.
+Every endpoint requires an `Authorization: Bearer <token>` session token by default, except signup,
+login, and the tablet-facing pairing endpoints (`POST /api/pairing/code`, `POST /api/pairing/poll`),
+which are anonymous by necessity. `Services/CurrentUser.cs` is the single seam the authenticated
+user is resolved into — see [`CLAUDE.md`](./CLAUDE.md). Tokens are opaque, 256-bit, non-expiring,
+and revocation-based (see `Services/SessionService.cs`); there is no JWT and no ASP.NET Identity.
 
 ## Prerequisites
 
@@ -44,6 +43,8 @@ pnpm start        # run the API (http://localhost:5137)
 
 `src/HabitTracker.Api/HabitTracker.Api.http` has ready-to-run requests for the Habits endpoints. In
 Development, the OpenAPI document is served at `/openapi/v1.json`.
+
+Production deployment (GCP e2-micro + Cloudflare Tunnel) is documented in [`DEPLOY.md`](./DEPLOY.md).
 
 ### The OpenAPI document
 
@@ -77,7 +78,7 @@ pnpm migrate      # = dotnet ef database update
 
 ## API
 
-`/api/habits` — list / get / create / update / delete habits for the current (stub) user.
+`/api/habits` — list / get / create / update / delete habits for the current user.
 Enums serialize as strings (`"Positive"`, `"Success"`). Delete is a **soft-delete** (tombstone), so a
 removed habit stops appearing but can still lose/win a sync merge.
 
@@ -92,3 +93,30 @@ key, distinct from the server-stamped `UpdatedAt` audit field, which never reach
 A request whose newest `editedAt` runs more than five minutes ahead of the server clock is rejected
 with `400` and merges nothing: an edit-time from a badly wrong clock would out-rank every later edit
 until wall-clock caught up. Smaller drift merges normally and is logged as a warning.
+
+### Auth
+
+`/api/auth/signup` (POST, anonymous) — email + password + device name (+ invite code, required
+once the `Users` table is non-empty). Returns the new user and a bearer token — signup logs you in.
+The first user ever created needs no invite and becomes an admin.
+
+`/api/auth/login` (POST, anonymous) — email + password + device name → user + bearer token. A
+wrong email and a wrong password both answer the same generic `401`, so a caller can't enumerate
+registered emails.
+
+`/api/auth/logout` (POST) — deletes the calling session (the one the request authenticated with).
+
+`/api/sessions` (GET) — the calling user's sessions, i.e. its linked devices. `DELETE
+/api/sessions/{id}` — revokes one of the caller's own sessions; `404` for anyone else's.
+
+`/api/invites` (POST, admin only) — mints a 7-day single-use invite code, returned once.
+
+`/api/pairing` — the reMarkable's device-code pairing flow: `POST /code` (anonymous) issues a
+6-character code the tablet displays and polls with `POST /poll` (anonymous) every few seconds. The
+phone looks the code up with `GET /{code}` (authenticated) to see the requesting device's name, then
+`POST /approve` (authenticated) to bind it to its account. The tablet's next poll after approval
+returns a bearer token — the only time that token exists on the wire for this flow — and the code is
+deleted in that same request, so a second poll on the same code reports it expired.
+
+Every endpoint above except the four marked anonymous requires `Authorization: Bearer <token>`; a
+missing or unknown token gets `401`. See [`CLAUDE.md`](./CLAUDE.md) for the auth layer's shape.

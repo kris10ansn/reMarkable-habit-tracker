@@ -14,11 +14,12 @@ namespace HabitTracker.Api.Tests;
 
 public class SyncControllerTests
 {
-    private static HabitTrackerDbContext NewDb() => SyncTestContext.NewDb("sync-controller");
+    private static HabitTrackerDbContext NewDb(out Guid userId) =>
+        SyncTestContext.NewDb("sync-controller", out userId);
 
-    private static SyncController NewController(HabitTrackerDbContext db) =>
+    private static SyncController NewController(HabitTrackerDbContext db, Guid userId) =>
         new(
-            new SyncService(db, new CurrentUser(), NullLogger<SyncService>.Instance),
+            new SyncService(db, new CurrentUser(userId), NullLogger<SyncService>.Instance),
             NullLogger<SyncController>.Instance
         )
         {
@@ -47,8 +48,8 @@ public class SyncControllerTests
     [Fact]
     public async Task Sync_ReturnsTheAuthoritativeState()
     {
-        using var db = NewDb();
-        var controller = NewController(db);
+        using var db = NewDb(out var userId);
+        var controller = NewController(db, userId);
 
         var result = await controller.Sync(
             OneHabitAt(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()),
@@ -63,8 +64,8 @@ public class SyncControllerTests
     [Fact]
     public async Task Sync_TurnsAnUnusableClientClockIntoABadRequest()
     {
-        using var db = NewDb();
-        var controller = NewController(db);
+        using var db = NewDb(out var userId);
+        var controller = NewController(db, userId);
 
         var result = await controller.Sync(
             OneHabitAt(SyncTestContext.FarAheadEditTime()),
@@ -82,8 +83,8 @@ public class SyncControllerTests
     {
         // Pins System.Text.Json's positional-record default binding: an old client's payload that
         // predates the field must still deserialize and sync, rather than throwing or failing to bind.
-        using var db = NewDb();
-        var controller = NewController(db);
+        using var db = NewDb(out var userId);
+        var controller = NewController(db, userId);
         var editedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
 
         var json =

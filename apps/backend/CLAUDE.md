@@ -70,8 +70,12 @@ Consequences when working here:
   clients never collide) and must be stored as-is — never re-mint one during a merge. The REST
   `POST /api/habits` path is different: `CreateHabitRequest` carries no id, so the server mints
   there.
-- **Auth is deferred.** Every request acts as the seeded stub user; `Services/CurrentUser.cs` is the
-  single seam to replace when authentication lands. Don't scatter user resolution elsewhere.
+- **Bearer tokens, resolved in one place.** `Authentication/BearerTokenAuthenticationHandler.cs`
+  hashes an `Authorization: Bearer <token>` and looks it up against `Sessions`;
+  `Services/CurrentUser.cs` is still the single seam everything else reads identity through — don't
+  scatter `ClaimsPrincipal`/`HttpContext.User` reads elsewhere. `[Authorize]` is the fallback policy
+  for every endpoint; only signup, login, and the two tablet-facing pairing endpoints opt out with
+  `[AllowAnonymous]`.
 - **No habits are seeded** — a new user starts empty and a first Sync populates the store.
 
 ## Conventions

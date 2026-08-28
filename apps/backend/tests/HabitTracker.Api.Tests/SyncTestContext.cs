@@ -1,4 +1,5 @@
 using HabitTracker.Api.Data;
+using HabitTracker.Api.Entities;
 using HabitTracker.Api.Services;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,10 +12,12 @@ namespace HabitTracker.Api.Tests;
 internal static class SyncTestContext
 {
     /// <summary>
-    /// A fresh in-memory database. <paramref name="suiteName"/> only labels it; the appended guid
-    /// is what keeps two tests from sharing state.
+    /// A fresh in-memory database seeded with one test <see cref="User"/>. <paramref
+    /// name="suiteName"/> only labels the database; the appended guid is what keeps two tests
+    /// from sharing state. Pass the returned <paramref name="userId"/> into <see
+    /// cref="CurrentUser"/> at every construction site — there is no seeded stub user anymore.
     /// </summary>
-    internal static HabitTrackerDbContext NewDb(string suiteName)
+    internal static HabitTrackerDbContext NewDb(string suiteName, out Guid userId)
     {
         var options = new DbContextOptionsBuilder<HabitTrackerDbContext>()
             .UseInMemoryDatabase($"{suiteName}-{Guid.NewGuid()}")
@@ -22,6 +25,19 @@ internal static class SyncTestContext
 
         var db = new HabitTrackerDbContext(options);
         db.Database.EnsureCreated();
+
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            Name = "Test User",
+            Email = "test@example.com",
+            PasswordHash = "placeholder-hash",
+            IsAdmin = false,
+        };
+        db.Users.Add(user);
+        db.SaveChanges();
+
+        userId = user.Id;
         return db;
     }
 

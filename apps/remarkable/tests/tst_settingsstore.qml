@@ -42,13 +42,15 @@ TestCase {
     }
 
     // Both settings are opt-in: suspend-image writing stays off and the client stays standalone
-    // until the user says otherwise (ADR 0001).
+    // until the user says otherwise (ADR 0001). The token is likewise absent — no pairing has
+    // happened yet.
     function test_defaultsAreOptOut() {
         const store = makeStore("defaults.json");
 
         compare(store.suspendImageEnabled, false);
         compare(store.serverUrl, "");
         compare(store.showPrivateHabits, false);
+        compare(store.token, "");
 
         store.destroy();
     }
@@ -60,16 +62,20 @@ TestCase {
         const store = makeStore("write-through.json");
 
         store.setSuspendImageEnabled(true);
-        readBackExact(target, { suspendImageEnabled: true, serverUrl: "", showPrivateHabits: false });
+        readBackExact(target, { suspendImageEnabled: true, serverUrl: "", showPrivateHabits: false, token: "" });
 
         store.setServerUrl("http://192.168.1.50:5000");
-        readBackExact(target, { suspendImageEnabled: true, serverUrl: "http://192.168.1.50:5000", showPrivateHabits: false });
+        readBackExact(target, { suspendImageEnabled: true, serverUrl: "http://192.168.1.50:5000", showPrivateHabits: false, token: "" });
 
         store.setShowPrivateHabits(true);
-        const written = readBackExact(target, { suspendImageEnabled: true, serverUrl: "http://192.168.1.50:5000", showPrivateHabits: true });
+        readBackExact(target, { suspendImageEnabled: true, serverUrl: "http://192.168.1.50:5000", showPrivateHabits: true, token: "" });
+
+        store.setToken("a-bearer-token");
+        const written = readBackExact(target, { suspendImageEnabled: true, serverUrl: "http://192.168.1.50:5000", showPrivateHabits: true, token: "a-bearer-token" });
         compare(written.suspendImageEnabled, true);
         compare(written.serverUrl, "http://192.168.1.50:5000");
         compare(written.showPrivateHabits, true);
+        compare(written.token, "a-bearer-token");
 
         store.destroy();
     }
@@ -78,17 +84,40 @@ TestCase {
         const target = path("round-trip.json");
         const first = makeStore("round-trip.json");
         first.setSuspendImageEnabled(true);
-        readBackExact(target, { suspendImageEnabled: true, serverUrl: "", showPrivateHabits: false });
+        readBackExact(target, { suspendImageEnabled: true, serverUrl: "", showPrivateHabits: false, token: "" });
         first.setServerUrl("http://example.test");
-        readBackExact(target, { suspendImageEnabled: true, serverUrl: "http://example.test", showPrivateHabits: false });
+        readBackExact(target, { suspendImageEnabled: true, serverUrl: "http://example.test", showPrivateHabits: false, token: "" });
         first.setShowPrivateHabits(true);
-        readBackExact(target, { suspendImageEnabled: true, serverUrl: "http://example.test", showPrivateHabits: true });
+        readBackExact(target, { suspendImageEnabled: true, serverUrl: "http://example.test", showPrivateHabits: true, token: "" });
+        first.setToken("a-bearer-token");
+        readBackExact(target, { suspendImageEnabled: true, serverUrl: "http://example.test", showPrivateHabits: true, token: "a-bearer-token" });
         first.destroy();
 
         const second = makeStore("round-trip.json");
         compare(second.suspendImageEnabled, true);
         compare(second.serverUrl, "http://example.test");
         compare(second.showPrivateHabits, true);
+        compare(second.token, "a-bearer-token");
+
+        second.destroy();
+    }
+
+    // Disconnect: clearToken drops the token (Settings → Disconnect) without touching any other
+    // field, and the empty token round-trips through disk exactly like every other default.
+    function test_clearTokenRoundTripsThroughDisk() {
+        const target = path("clear-token.json");
+        const first = makeStore("clear-token.json");
+        first.setServerUrl("http://example.test");
+        first.setToken("a-bearer-token");
+        readBackExact(target, { suspendImageEnabled: false, serverUrl: "http://example.test", showPrivateHabits: false, token: "a-bearer-token" });
+
+        first.clearToken();
+        readBackExact(target, { suspendImageEnabled: false, serverUrl: "http://example.test", showPrivateHabits: false, token: "" });
+        first.destroy();
+
+        const second = makeStore("clear-token.json");
+        compare(second.serverUrl, "http://example.test");
+        compare(second.token, "");
 
         second.destroy();
     }
@@ -114,7 +143,7 @@ TestCase {
         store.setServerUrl("http://example.test");
         store.setShowPrivateHabits(true);
 
-        readBackExact(target, { suspendImageEnabled: false, serverUrl: "http://example.test", showPrivateHabits: true });
+        readBackExact(target, { suspendImageEnabled: false, serverUrl: "http://example.test", showPrivateHabits: true, token: "" });
         tryCompare(spy, "count", 1);
         wait(200);
         compare(spy.count, 1);
@@ -140,6 +169,7 @@ TestCase {
         store.setSuspendImageEnabled(false);
         store.setServerUrl("");
         store.setShowPrivateHabits(false);
+        store.setToken("");
 
         wait(200);
         compare(spy.count, 0);
@@ -152,7 +182,7 @@ TestCase {
     // Unlike the habit data there is nothing here worth refusing over — losing a server URL is
     // recoverable, losing a month of entries is not.
     function test_junkOnDiskFallsBackToDefaults() {
-        [42, "nonsense", null, { suspendImageEnabled: "yes", serverUrl: 7, showPrivateHabits: "yes" }].forEach((junk, index) => {
+        [42, "nonsense", null, { suspendImageEnabled: "yes", serverUrl: 7, showPrivateHabits: "yes", token: 7 }].forEach((junk, index) => {
             const target = path(`junk-${index}.json`);
             Storage.writeJson(target, junk);
             readBack(target);
@@ -161,6 +191,7 @@ TestCase {
             compare(store.suspendImageEnabled, false, `suspendImageEnabled from ${JSON.stringify(junk)}`);
             compare(store.serverUrl, "", `serverUrl from ${JSON.stringify(junk)}`);
             compare(store.showPrivateHabits, false, `showPrivateHabits from ${JSON.stringify(junk)}`);
+            compare(store.token, "", `token from ${JSON.stringify(junk)}`);
 
             store.destroy();
         });
@@ -176,12 +207,14 @@ TestCase {
         compare(store.serverUrl, "http://only-this.test");
         compare(store.suspendImageEnabled, false);
         compare(store.showPrivateHabits, false);
+        compare(store.token, "");
 
         store.destroy();
     }
 
-    // A settings.json written before showPrivateHabits existed keeps the setting's default rather
-    // than failing to load — additive fields never require a migration (unlike the habit data).
+    // A settings.json written before showPrivateHabits (or token) existed keeps each setting's
+    // default rather than failing to load — additive fields never require a migration (unlike the
+    // habit data).
     function test_aFileMissingShowPrivateHabitsKeepsTheDefault() {
         const target = path("missing-show-private.json");
         Storage.writeJson(target, { suspendImageEnabled: true, serverUrl: "http://example.test" });
@@ -192,6 +225,7 @@ TestCase {
         compare(store.suspendImageEnabled, true);
         compare(store.serverUrl, "http://example.test");
         compare(store.showPrivateHabits, false);
+        compare(store.token, "");
 
         store.destroy();
     }

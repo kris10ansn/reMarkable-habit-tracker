@@ -1,19 +1,77 @@
+using HabitTracker.Api.Authentication;
+using System.Security.Claims;
+
 namespace HabitTracker.Api.Services;
 
 /// <summary>
-/// The User on whose behalf the current request acts. Auth is deferred, so this
-/// resolves to a single well-known stub identity for now (seeded in the DbContext).
-/// When real authentication lands, this is the one seam to replace — register a
-/// scoped implementation that reads the authenticated principal from the request.
+/// The User (and Session) on whose behalf the current request acts. This is the single seam the
+/// auth layer resolves into — every other service reads identity through here rather than touching
+/// <see cref="ClaimsPrincipal"/> or <c>HttpContext</c> directly. Registered as scoped in
+/// <c>Program.cs</c>, built once per request from the authenticated principal via
+/// <see cref="FromPrincipal"/>.
 /// </summary>
 public sealed class CurrentUser
 {
-    public static readonly Guid StubUserId = Guid.Parse("00000000-0000-0000-0000-000000000001");
+    private readonly Guid? _userId;
+    private readonly Guid _sessionId;
+    private readonly bool _isAdmin;
 
-    public Guid UserId { get; }
+    public bool IsAuthenticated => _userId is not null;
 
-    public CurrentUser()
-        : this(StubUserId) { }
+    public Guid UserId =>
+        _userId ?? throw new InvalidOperationException("No authenticated user for this request.");
 
-    public CurrentUser(Guid userId) => UserId = userId;
+    public Guid SessionId => _sessionId;
+
+    public bool IsAdmin => _isAdmin;
+
+    /// <summary>The unauthenticated seam value — no anonymous endpoint should need it, but every
+    /// scoped registration must produce something.</summary>
+    public static CurrentUser Anonymous { get; } = new();
+
+    private CurrentUser()
+    {
+        _userId = null;
+        _sessionId = Guid.Empty;
+        _isAdmin = false;
+    }
+
+    public CurrentUser(Guid userId, Guid sessionId, bool isAdmin)
+    {
+        _userId = userId;
+        _sessionId = sessionId;
+        _isAdmin = isAdmin;
+    }
+
+    /// <summary>Convenience overload for tests that only care about the owning user.</summary>
+    public CurrentUser(Guid userId)
+        : this(userId, Guid.Empty, isAdmin: false) { }
+
+    /// <summary>
+    /// Builds a <see cref="CurrentUser"/> from the bearer-authenticated principal
+    /// (<see cref="BearerTokenAuthenticationHandler"/>). Returns <see cref="Anonymous"/> when
+    /// <paramref name="principal"/> is null, unauthenticated, or its claims don't parse — an
+    /// anonymous endpoint is the only place that should observe that.
+    /// </summary>
+    public static CurrentUser FromPrincipal(ClaimsPrincipal? principal)
+    {
+        if (principal?.Identity is not { IsAuthenticated: true })
+        {
+            return Anonymous;
+        }
+
+        var userIdClaim = principal.FindFirst(BearerTokenDefaults.UserIdClaim)?.Value;
+        var sessionIdClaim = principal.FindFirst(BearerTokenDefaults.SessionIdClaim)?.Value;
+        if (
+            !Guid.TryParse(userIdClaim, out var userId)
+            || !Guid.TryParse(sessionIdClaim, out var sessionId)
+        )
+        {
+            return Anonymous;
+        }
+
+        var isAdmin = principal.FindFirst(BearerTokenDefaults.IsAdminClaim)?.Value == "true";
+
+        return new CurrentUser(userId, sessionId, isAdmin);
+    }
 }

@@ -121,6 +121,24 @@ TestCase {
         compare(store._endpoint("http://example.test///"), "http://example.test/api/sync");
     }
 
+    // --- token -------------------------------------------------------------------------------
+
+    function test_tokenIsEmptyUntilPaired() {
+        makeStore();
+
+        compare(store._token(), "");
+    }
+
+    function test_tokenFollowsSettingsStore() {
+        makeStore();
+
+        store.settingsStore = { serverUrl: "http://example.test", token: "a-bearer-token" };
+        compare(store._token(), "a-bearer-token");
+
+        store.settingsStore = null;
+        compare(store._token(), "");
+    }
+
     // --- guards ---------------------------------------------------------------------------------
 
     // Standalone is the default: with no server configured, sync is a silent no-op rather than an
@@ -185,7 +203,7 @@ TestCase {
             verify(store.isRequestInFlight, `${phase} should count as in flight`);
         });
 
-        ["", "pending", "ok", "offline", "error"].forEach(phase => {
+        ["", "pending", "ok", "offline", "unauthorized", "error"].forEach(phase => {
             store.status = phase;
             verify(!store.isRequestInFlight, `${phase} should not count as in flight`);
         });
@@ -234,6 +252,22 @@ TestCase {
         compare(store.status, "error");
         compare(store.errorMessage, "Server returned 500");
         compare(store.habitsStore.applySyncedCalls, 0);
+    }
+
+    // A missing/unknown token must read as "not connected", never as a data problem — the habit
+    // history this app exists to protect is never touched on an auth failure, and it stays out of
+    // the "error" status so it never pops the misconfiguration modal.
+    function test_status401ReadsAsUnauthorized() {
+        makeStore();
+        const request = Sync.buildRequest([Fixtures.rosterRow({ id: "a" })], [], [], "2026-08");
+
+        store._handleDone(done(401, ""), request, "2026-08");
+
+        compare(store.status, "unauthorized");
+        compare(store.statusText, "Not connected");
+        compare(store.habitsStore.applySyncedCalls, 0);
+        compare(store.habitsStore.purgeCalls, 0);
+        compare(store.lastSyncedAt, 0);
     }
 
     function test_anUnparseableBodyIsAnError() {
@@ -358,6 +392,7 @@ TestCase {
             "headers-received": "Sync: headers received…",
             "loading": "Sync: loading…",
             "offline": "Sync failed",
+            "unauthorized": "Not connected",
             "error": "Sync error"
         };
 

@@ -84,6 +84,10 @@ export default function RootLayout() {
                         ),
                     }}
                 />
+                {/* Reached by pushing from the Sync tab's Account card, not by tab — href: null
+                    keeps them out of the tab bar while staying part of this navigator. */}
+                <Tabs.Screen name="devices" options={{ href: null }} />
+                <Tabs.Screen name="link-device" options={{ href: null }} />
             </Tabs>
 
             <Toaster position="bottom-center" />

@@ -1,6 +1,7 @@
 import QtQuick 2.15
 import "js/HabitsModel.js" as HabitsModel
 import "js/Sync.js" as Sync
+import "js/ServerUrl.js" as ServerUrl
 
 // Offline-first sync sidecar + engine. Persists the last-sync time to data/sync.json and runs the
 // one-call merge against the configured server. Standalone when no server URL is set: syncNow is a
@@ -131,6 +132,10 @@ JsonStore {
 
         xhr.open("POST", endpoint);
         xhr.setRequestHeader("Content-Type", "application/json");
+        const token = syncStore._token();
+        if (token) {
+            xhr.setRequestHeader("Authorization", "Bearer " + token);
+        }
         syncStore._timeoutTimer.restart();
         xhr.send(JSON.stringify(request));
     }
@@ -149,6 +154,13 @@ JsonStore {
     function _handleDone(xhr, request, requestMonthKey) {
         if (xhr.status === 0) {
             syncStore._fail("offline", "Couldn’t reach the server");
+            return;
+        }
+        // Missing or unknown token. This is never a local data problem — the habit history stays
+        // exactly as it was, and a fresh pairing (Settings → Connect) is all that's needed to
+        // resume syncing. Kept out of the loud "error" status so it never pops the misconfig modal.
+        if (xhr.status === 401) {
+            syncStore._fail("unauthorized", "Not connected");
             return;
         }
         if (xhr.status !== 200) {
@@ -238,6 +250,7 @@ JsonStore {
         if (syncStore.status === "headers-received") return "Sync: headers received…";
         if (syncStore.status === "loading") return "Sync: loading…";
         if (syncStore.status === "offline") return "Sync failed";
+        if (syncStore.status === "unauthorized") return "Not connected";
         if (syncStore.status === "error") return "Sync error";
 
         if (syncStore.lastSyncedAt > 0) return "Synced to server";
@@ -250,19 +263,19 @@ JsonStore {
             return "";
         }
 
-        const configured = (syncStore.settingsStore.serverUrl || "").trim();
-        if (!configured || /^https?:\/\//i.test(configured)) {
-            return configured;
-        }
-
-        // A scheme-less host (e.g. "192.168.1.50:5000") is treated by Qt's XMLHttpRequest as a
-        // local file, which rejects POST with "Unsupported method used on a local file". Default
-        // to http:// so the request actually goes over the network.
-        return "http://" + configured;
+        return ServerUrl.withDefaultScheme(syncStore.settingsStore.serverUrl);
     }
 
     function _endpoint(url) {
-        return url.replace(/\/+$/, "") + "/api/sync";
+        return ServerUrl.endpoint(url, "/api/sync");
+    }
+
+    function _token() {
+        if (!syncStore.settingsStore) {
+            return "";
+        }
+
+        return syncStore.settingsStore.token || "";
     }
 
     function _parse(text) {

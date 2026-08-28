@@ -7,8 +7,15 @@ import * as repo from "@/db/repo";
 import { updateSettings } from "@/db/repo/settings";
 import { monthKey } from "@/domain/dates";
 
+import { isUnauthorized } from "@/state/queries/auth";
 import { useSettings } from "@/state/queries/settings";
-import { entriesKey, habitsKey, settingsKey, streaksKey } from "./keys";
+import {
+    authSessionKey,
+    entriesKey,
+    habitsKey,
+    settingsKey,
+    streaksKey,
+} from "./keys";
 
 /**
  * One sync round-trip: gather local state, POST it, overwrite local with the authoritative result.
@@ -66,6 +73,15 @@ export function useSync() {
                 queryClient.invalidateQueries({ queryKey: entriesKey(month) }),
             );
         },
+
+        onError: (error) => {
+            // A dead/revoked token never wipes or blocks local data — `client.ts` has already
+            // discarded it from SecureStore; this just lets the Sync tab's account card catch up
+            // to "signed out" so the owner knows to reconnect. Habits and entries are untouched.
+            if (isUnauthorized(error)) {
+                queryClient.invalidateQueries({ queryKey: authSessionKey });
+            }
+        },
     });
 }
 
@@ -76,6 +92,10 @@ export function syncErrorReason(error: unknown): string {
     }
 
     if (error instanceof ApiError) {
+        if (error.status === 401) {
+            return "Signed out — reconnect in Settings.";
+        }
+
         // The backend refuses a whole sync whose edit-times run too far ahead of its own clock,
         // because edit-time is the merge key and a bad one would out-rank every later edit.
         if (error.status === 400 && isClockSkew(error.body)) {

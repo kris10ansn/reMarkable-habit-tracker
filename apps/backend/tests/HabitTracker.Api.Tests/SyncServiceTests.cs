@@ -9,10 +9,11 @@ namespace HabitTracker.Api.Tests;
 
 public class SyncServiceTests
 {
-    private static HabitTrackerDbContext NewDb() => SyncTestContext.NewDb("sync");
+    private static HabitTrackerDbContext NewDb(out Guid userId) =>
+        SyncTestContext.NewDb("sync", out userId);
 
-    private static SyncService NewSync(HabitTrackerDbContext db) =>
-        new(db, new CurrentUser(), NullLogger<SyncService>.Instance);
+    private static SyncService NewSync(HabitTrackerDbContext db, Guid userId) =>
+        new(db, new CurrentUser(userId), NullLogger<SyncService>.Instance);
 
     private static readonly DateTimeOffset T0 = new(2026, 6, 1, 12, 0, 0, TimeSpan.Zero);
 
@@ -60,8 +61,8 @@ public class SyncServiceTests
     [Fact]
     public async Task Sync_CreatesNewHabitAndEntry_FromClient()
     {
-        using var db = NewDb();
-        var sync = NewSync(db);
+        using var db = NewDb(out var userId);
+        var sync = NewSync(db, userId);
         var id = Guid.NewGuid();
         var date = new DateOnly(2026, 6, 3);
 
@@ -81,8 +82,8 @@ public class SyncServiceTests
     [Fact]
     public async Task Sync_NewerClientEditWins_OlderLoses()
     {
-        using var db = NewDb();
-        var sync = NewSync(db);
+        using var db = NewDb(out var userId);
+        var sync = NewSync(db, userId);
         var id = Guid.NewGuid();
 
         await sync.SyncAsync(Request([Habit(id, "Read", Ms(10))]));
@@ -97,8 +98,8 @@ public class SyncServiceTests
     [Fact]
     public async Task Sync_Tombstone_DeletesHabit_AndOnlyNewerReAddResurrects()
     {
-        using var db = NewDb();
-        var sync = NewSync(db);
+        using var db = NewDb(out var userId);
+        var sync = NewSync(db, userId);
         var id = Guid.NewGuid();
 
         await sync.SyncAsync(Request([Habit(id, "Read", Ms(0))]));
@@ -118,8 +119,8 @@ public class SyncServiceTests
     [Fact]
     public async Task Sync_ClearedEntryTombstone_RemovesEntryFromResponse()
     {
-        using var db = NewDb();
-        var sync = NewSync(db);
+        using var db = NewDb(out var userId);
+        var sync = NewSync(db, userId);
         var id = Guid.NewGuid();
         var date = new DateOnly(2026, 6, 4);
 
@@ -140,8 +141,8 @@ public class SyncServiceTests
     [Fact]
     public async Task Sync_IgnoresEntriesForUnownedHabits_AndLeavesOtherUsersUntouched()
     {
-        using var db = NewDb();
-        var sync = NewSync(db);
+        using var db = NewDb(out var userId);
+        var sync = NewSync(db, userId);
 
         var otherUserId = Guid.NewGuid();
         db.Users.Add(new User { Id = otherUserId, Name = "Other" });
@@ -172,8 +173,8 @@ public class SyncServiceTests
     [Fact]
     public async Task Sync_ReturnsHabitsByPosition_AndScopesEntriesToRequestedMonth()
     {
-        using var db = NewDb();
-        var sync = NewSync(db);
+        using var db = NewDb(out var userId);
+        var sync = NewSync(db, userId);
         var first = Guid.NewGuid();
         var second = Guid.NewGuid();
         var june = new DateOnly(2026, 6, 6);
@@ -203,8 +204,8 @@ public class SyncServiceTests
     {
         // The wire carries DeletedAt in its own right, so a row edited after it was deleted keeps
         // both instants. Conflating them (the old `deleted: bool`) made this unrepresentable.
-        using var db = NewDb();
-        var sync = NewSync(db);
+        using var db = NewDb(out var userId);
+        var sync = NewSync(db, userId);
         var id = Guid.NewGuid();
 
         await sync.SyncAsync(Request([Habit(id, "Read", Ms(0))]));
@@ -222,8 +223,8 @@ public class SyncServiceTests
     {
         // Mobile anchors a negative habit's streak on createdAt, so a habit made offline weeks ago
         // must not have its anchor moved to whenever the device got around to syncing.
-        using var db = NewDb();
-        var sync = NewSync(db);
+        using var db = NewDb(out var userId);
+        var sync = NewSync(db, userId);
         var id = Guid.NewGuid();
         var createdLongBefore = Ms(-86_400);
 
@@ -240,8 +241,8 @@ public class SyncServiceTests
     public async Task Sync_MergesEditTimesWithinTheClockSkewTolerance()
     {
         // A client clock running a little fast is ordinary; its edit-time still merges verbatim.
-        using var db = NewDb();
-        var sync = NewSync(db);
+        using var db = NewDb(out var userId);
+        var sync = NewSync(db, userId);
         var id = Guid.NewGuid();
         var date = new DateOnly(2026, 6, 3);
 
@@ -263,8 +264,8 @@ public class SyncServiceTests
     {
         // A wildly fast clock would out-rank every later edit until wall-clock caught up, so the
         // whole request is refused rather than half-merged.
-        using var db = NewDb();
-        var sync = NewSync(db);
+        using var db = NewDb(out var userId);
+        var sync = NewSync(db, userId);
 
         var skew = await Assert.ThrowsAsync<ClockSkewException>(
             () =>
@@ -281,8 +282,8 @@ public class SyncServiceTests
     [Fact]
     public async Task Sync_RoundTripsIsPrivate_ToTheSameClientAndToAFreshOne()
     {
-        using var db = NewDb();
-        var sync = NewSync(db);
+        using var db = NewDb(out var userId);
+        var sync = NewSync(db, userId);
         var id = Guid.NewGuid();
 
         var response = await sync.SyncAsync(Request([Habit(id, "Read", Ms(0), isPrivate: true)]));
@@ -296,8 +297,8 @@ public class SyncServiceTests
     [Fact]
     public async Task Sync_IsPrivate_IsLastWriteWinsLikeEveryOtherField()
     {
-        using var db = NewDb();
-        var sync = NewSync(db);
+        using var db = NewDb(out var userId);
+        var sync = NewSync(db, userId);
         var id = Guid.NewGuid();
 
         await sync.SyncAsync(Request([Habit(id, "Read", Ms(10), isPrivate: true)]));
@@ -312,8 +313,8 @@ public class SyncServiceTests
     [Fact]
     public async Task Sync_RefusesASkewedEntryEditTime_EvenWhenTheRosterIsSound()
     {
-        using var db = NewDb();
-        var sync = NewSync(db);
+        using var db = NewDb(out var userId);
+        var sync = NewSync(db, userId);
         var id = Guid.NewGuid();
         var date = new DateOnly(2026, 6, 3);
 

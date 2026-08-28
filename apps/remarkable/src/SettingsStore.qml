@@ -16,11 +16,17 @@ JsonStore {
     // per-surface, so it never syncs.
     property bool showPrivateHabits: false
 
+    // The bearer token this device paired with, or "" when unpaired. Plaintext on-device is an
+    // accepted trade-off (see AUTH_PLAN.md) — the device has no keychain to speak of, and the
+    // token is revocable from the phone if the device is ever lost.
+    property string token: ""
+
     serialize: function () {
         return {
             suspendImageEnabled: settingsStore.suspendImageEnabled,
             serverUrl: settingsStore.serverUrl,
-            showPrivateHabits: settingsStore.showPrivateHabits
+            showPrivateHabits: settingsStore.showPrivateHabits,
+            token: settingsStore.token
         };
     }
 
@@ -37,6 +43,9 @@ JsonStore {
         }
         if (typeof data.showPrivateHabits === "boolean") {
             settingsStore.showPrivateHabits = data.showPrivateHabits;
+        }
+        if (typeof data.token === "string") {
+            settingsStore.token = data.token;
         }
     }
 
@@ -77,5 +86,22 @@ JsonStore {
 
         settingsStore.serverUrl = next;
         settingsStore._saveCoalesced();
+    }
+
+    // Set once, by a successful pairing poll — never user-typed, so no trimming.
+    function setToken(value) {
+        const next = value || "";
+        if (next === settingsStore.token) {
+            return;
+        }
+
+        settingsStore.token = next;
+        settingsStore._saveCoalesced();
+    }
+
+    // Disconnect: drops the token from this device only. The session row survives server-side
+    // until revoked from the phone's linked-devices list.
+    function clearToken() {
+        settingsStore.setToken("");
     }
 }

@@ -100,6 +100,14 @@ Rectangle {
         monthKey: habitsStore.monthKey
     }
 
+    // Polls only while the settings page is on screen — a 3-second timer ticking behind a hidden
+    // page would waste battery and wake e-ink hardware no one is looking at.
+    App.PairingStore {
+        id: pairingStore
+        settingsStore: settingsStore
+        active: landscape.currentView === "settings"
+    }
+
     App.SuspendCanvas {
         id: suspendCanvas
         habits: habitsStore.habits
@@ -403,6 +411,10 @@ Rectangle {
             showPrivateHabits: settingsStore.showPrivateHabits
             serverUrl: settingsStore.serverUrl
             syncStatusText: syncStore.statusText
+            pairingConnected: settingsStore.token !== ""
+            pairingStatus: pairingStore.status
+            pairingCode: pairingStore.code
+            pairingErrorMessage: pairingStore.errorMessage
             onApplyRequested: root.applySuspendSetting(value)
             onShowPrivateHabitsApplied: settingsStore.setShowPrivateHabits(value)
             onServerUrlApplied: {
@@ -410,6 +422,8 @@ Rectangle {
                 syncStore.syncNow();
             }
             onSyncNowRequested: syncStore.syncNow()
+            onConnectRequested: pairingStore.requestCode()
+            onDisconnectRequested: pairingStore.disconnect()
             onBackRequested: landscape.currentView = "grid"
         }
 

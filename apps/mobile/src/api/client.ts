@@ -7,6 +7,18 @@
 // user-editable setting (empty = standalone, see the Sync tab), so every call passes the URL it
 // wants — `sync(request, { baseURL: settings.syncServerUrl })`. A caller with no server configured
 // is not supposed to reach here at all.
+//
+// Also the single place that attaches the bearer token (see `src/auth/session.ts`) — every
+// generated operation gets it for free, with no per-call wiring — and the single place that reacts
+// to the server rejecting it: a 401 on a request that carried a token means that token is dead
+// (revoked, or the session no longer exists), so it's discarded here. `/api/auth/signup` and
+// `/api/auth/login` are the backend's anonymous endpoints (see AUTH_PLAN.md's endpoint table) and
+// never get the header, so a 401 from either — wrong credentials — can never be confused with a
+// dead token and never wipes a session that was working fine. Clearing storage is as far as this
+// goes: it never touches SQLite, and it doesn't decide what the UI shows — callers read the
+// resulting signed-out state through `useAuthSession()` (see `src/state/queries/auth.ts`).
+
+import { clearAuthSession, getAuthSession } from "@/auth/session";
 
 /** Per-request options. The generated operations fill in `method`/`url`/`data`; callers add `baseURL`. */
 export type RequestConfig<TData = unknown> = {
@@ -31,6 +43,11 @@ export type ResponseConfig<TData = unknown> = {
 
 /** The error payload type a generated operation declares for a failed call. */
 export type ResponseErrorConfig<TError = unknown> = TError;
+
+// The backend's own anonymous endpoints (see the endpoint table in AUTH_PLAN.md). Every other
+// operation is either genuinely protected or harmlessly tolerant of a bearer header it doesn't
+// need, so this is the only path-based special case the transport makes.
+const ANONYMOUS_PATHS = new Set(["/api/auth/signup", "/api/auth/login"]);
 
 /**
  * The transport signature. Generated operations accept a `client` override of this shape.
@@ -98,7 +115,11 @@ function buildUrl(config: RequestConfig<unknown>): string {
 // `response.json()` on an empty or non-JSON body throws; a failed request should still surface its
 // status rather than a parse error, so fall back to the raw text.
 async function readBody(response: Response): Promise<unknown> {
-    if (response.status === 204 || response.status === 205 || response.status === 304) {
+    if (
+        response.status === 204 ||
+        response.status === 205 ||
+        response.status === 304
+    ) {
         return undefined;
     }
 
@@ -124,11 +145,15 @@ const client: Client = async <
 ): Promise<ResponseConfig<TResponseData>> => {
     const url = buildUrl(config);
 
+    const isAnonymous = ANONYMOUS_PATHS.has(config.url ?? "");
+    const session = isAnonymous ? null : await getAuthSession();
+
     const headers: Record<string, string> = {
         Accept: "application/json",
         ...(config.data === undefined
             ? {}
             : { "Content-Type": "application/json" }),
+        ...(session ? { Authorization: `Bearer ${session.token}` } : {}),
         ...config.headers,
     };
 
@@ -157,6 +182,13 @@ const client: Client = async <
     const body = await readBody(response);
 
     if (!response.ok) {
+        if (response.status === 401 && session) {
+            // The token we sent was rejected — dead or revoked server-side. Discard it so the next
+            // request doesn't resend a token the server has already told us to forget. Local habit
+            // data is untouched; UI state catches up via `useAuthSession()`.
+            await clearAuthSession();
+        }
+
         throw new ApiError(response.status, response.statusText, body);
     }
 

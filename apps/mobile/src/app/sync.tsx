@@ -6,6 +6,7 @@ import {
     TextInputHint,
     TextInputLabel,
 } from "@/components/ui/TextField";
+import { relativeTime } from "@/lib/relativeTime";
 import { useUpdateEffect } from "@/lib/useUpdateEffect";
 import {
     syncErrorReason,
@@ -14,7 +15,9 @@ import {
     useUpdateSettings,
 } from "@/state/queries";
 import { useState } from "react";
-import { View } from "react-native";
+import { Text, View } from "react-native";
+
+import { AccountSection } from "@/components/account/AccountSection";
 
 import type { SyncState } from "@/components/sync/SyncStatusCard";
 
@@ -90,6 +93,11 @@ export default function SyncScreen() {
                     </View>
                 </View>
             </Card>
+
+            <Text className="mb-2 ml-1 mt-1 text-xs font-semibold uppercase tracking-wide text-ink-3">
+                Account
+            </Text>
+            <AccountSection />
         </AppScreen>
     );
 }
@@ -109,22 +117,4 @@ function syncState(status: {
     if (status.lastSyncedAt === null) return "not-synced";
 
     return "connected";
-}
-
-const MINUTE = 60_000;
-const HOUR = 60 * MINUTE;
-const DAY = 24 * HOUR;
-
-function relativeTime(
-    instant: number | null,
-    now: number = Date.now(),
-): string {
-    if (instant === null) return "never";
-
-    const elapsed = now - instant;
-    if (elapsed < MINUTE) return "just now";
-    if (elapsed < HOUR) return `${Math.floor(elapsed / MINUTE)} min ago`;
-    if (elapsed < DAY) return `${Math.floor(elapsed / HOUR)} h ago`;
-
-    return `${Math.floor(elapsed / DAY)} d ago`;
 }

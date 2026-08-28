@@ -1,7 +1,17 @@
 export { deleteApiHabitsId } from "./deleteApiHabitsId";
+export { deleteApiSessionsId } from "./deleteApiSessionsId";
 export { getApiHabits } from "./getApiHabits";
 export { getApiHabitsId } from "./getApiHabitsId";
 export { getApiHabitsIdEntries } from "./getApiHabitsIdEntries";
+export { getApiPairingCode } from "./getApiPairingCode";
+export { getApiSessions } from "./getApiSessions";
+export { postApiAuthLogin } from "./postApiAuthLogin";
+export { postApiAuthLogout } from "./postApiAuthLogout";
+export { postApiAuthSignup } from "./postApiAuthSignup";
 export { postApiHabits } from "./postApiHabits";
+export { postApiInvites } from "./postApiInvites";
+export { postApiPairingApprove } from "./postApiPairingApprove";
+export { postApiPairingCode } from "./postApiPairingCode";
+export { postApiPairingPoll } from "./postApiPairingPoll";
 export { postApiSync } from "./postApiSync";
 export { putApiHabitsId } from "./putApiHabitsId";
