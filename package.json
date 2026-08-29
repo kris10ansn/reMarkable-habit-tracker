@@ -10,6 +10,8 @@
         "mobile:start": "pnpm --filter @habit-tracker/mobile run start",
         "mobile:android": "pnpm --filter @habit-tracker/mobile run android",
         "mobile:ios": "pnpm --filter @habit-tracker/mobile run ios",
+        "mobile:build:android": "pnpm --filter @habit-tracker/mobile run build:android",
+        "mobile:build:android:local": "pnpm --filter @habit-tracker/mobile run build:android:local",
         "mobile:db:generate": "pnpm --filter @habit-tracker/mobile run db:generate",
         "mobile:api:generate": "pnpm --filter @habit-tracker/mobile run api:generate",
         "remarkable:build": "pnpm --filter @habit-tracker/remarkable run build",

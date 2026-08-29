@@ -63,6 +63,8 @@
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
+    "build:android": "eas build --platform android",
+    "build:android:local": "eas build --platform android --local",
     "typecheck": "tsc --noEmit",
     "lint": "expo lint",
     "db:generate": "drizzle-kit generate",
