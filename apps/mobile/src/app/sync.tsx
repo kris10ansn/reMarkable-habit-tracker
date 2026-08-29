@@ -1,11 +1,13 @@
 import { SyncStatusCard } from "@/components/sync/SyncStatusCard";
 import { AppScreen } from "@/components/ui/AppScreen";
+import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import {
     TextInputField,
     TextInputHint,
     TextInputLabel,
 } from "@/components/ui/TextField";
+import { cn } from "@/lib/cn";
 import { relativeTime } from "@/lib/relativeTime";
 import { useUpdateEffect } from "@/lib/useUpdateEffect";
 import {
@@ -37,16 +39,17 @@ export default function SyncScreen() {
         }
     }, [settings.data]);
 
+    const savedSyncServerUrl = settings.data?.syncServerUrl ?? "";
+    // Saving is explicit: Android's back button dismisses the keyboard without blurring the input,
+    // so an on-blur save silently skipped the most common way of leaving the field.
+    const hasUnsavedServerUrl = syncServerUrl !== savedSyncServerUrl;
+
     const updateSyncSettingsUrl = () => {
+        if (!hasUnsavedServerUrl) return;
+
         // A different backend has different history, so a stale lastSyncedAt would make the next
         // sync a silently-partial incremental one instead of the full one it needs to be.
-        const changedServer =
-            syncServerUrl !== (settings.data?.syncServerUrl ?? "");
-
-        updateSettings.mutate({
-            syncServerUrl,
-            ...(changedServer ? { lastSyncedAt: null } : {}),
-        });
+        updateSettings.mutate({ syncServerUrl, lastSyncedAt: null });
     };
 
     const lastSyncedAt = settings.data?.lastSyncedAt ?? null;
@@ -76,21 +79,36 @@ export default function SyncScreen() {
             <Card className="flex-col">
                 <TextInputLabel>Server URL</TextInputLabel>
 
-                <View className="flex-row gap-4">
-                    <View className="flex-1 flex-col">
+                <View className="flex-col">
+                    <View className="flex-row items-start gap-3">
                         <TextInputField
+                            className="flex-1"
                             value={syncServerUrl}
                             onChangeText={setSyncServerUrl}
                             placeholder="https://example.com"
                             editable={!settings.isFetching}
                             inputMode="url"
                             autoCapitalize="none"
-                            onBlur={updateSyncSettingsUrl}
+                            onSubmitEditing={updateSyncSettingsUrl}
                         />
-                        <TextInputHint>
-                            Syncs habits across your devices.
-                        </TextInputHint>
+                        <Button
+                            label={
+                                updateSettings.isPending ? "Saving…" : "Save"
+                            }
+                            disabled={
+                                !hasUnsavedServerUrl || updateSettings.isPending
+                            }
+                            onPress={updateSyncSettingsUrl}
+                            className="px-5 py-3.5"
+                        />
                     </View>
+                    <TextInputHint
+                        className={cn(hasUnsavedServerUrl && "text-slip")}
+                    >
+                        {hasUnsavedServerUrl
+                            ? "Unsaved change — tap Save to apply it."
+                            : "Syncs habits across your devices."}
+                    </TextInputHint>
                 </View>
             </Card>
 
