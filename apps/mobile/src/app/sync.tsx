@@ -89,6 +89,9 @@ export default function SyncScreen() {
                             editable={!settings.isFetching}
                             inputMode="url"
                             autoCapitalize="none"
+                            autoComplete="off"
+                            importantForAutofill="no"
+                            textContentType="URL"
                             onSubmitEditing={updateSyncSettingsUrl}
                         />
                         <Button

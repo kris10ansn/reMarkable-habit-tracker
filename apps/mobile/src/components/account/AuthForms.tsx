@@ -70,6 +70,7 @@ export function AuthForms() {
                     autoCapitalize="none"
                     autoCorrect={false}
                     inputMode="email"
+                    autoComplete="email"
                     textContentType="emailAddress"
                 />
             </View>
@@ -81,6 +82,9 @@ export function AuthForms() {
                     onChangeText={setPassword}
                     placeholder="At least 10 characters"
                     secureTextEntry
+                    autoComplete={
+                        mode === "signup" ? "new-password" : "current-password"
+                    }
                     textContentType={
                         mode === "signup" ? "newPassword" : "password"
                     }
@@ -101,6 +105,8 @@ export function AuthForms() {
                         placeholder="Only needed after the first account"
                         autoCapitalize="characters"
                         autoCorrect={false}
+                        autoComplete="off"
+                        importantForAutofill="no"
                     />
                     <Text className="ml-1 mt-2 text-xs leading-5 text-ink-2">
                         The very first account on a fresh server needs no code.
