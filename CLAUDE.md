@@ -75,9 +75,10 @@ the device, describe what to run and wait. This applies even when a `make` targe
 - **Per-app delegators** (root scripts that call into one app):
     - `pnpm mobile:start` (also `mobile:android` / `mobile:ios`; there is deliberately no web
       target — never run the mobile app on web, see `apps/mobile/CLAUDE.md`).
-      `pnpm mobile:build:android` runs an EAS cloud build; `mobile:build:android:local` builds on
-      this machine instead (`--local`, needs the Android SDK + JDK). Both default to the
-      `production` profile — append `--profile preview` (or `development`) to pick another.
+      `pnpm mobile:build:android` runs an EAS cloud build on the `production` profile — append
+      `--profile preview` (or `development`) to pick another. `mobile:build:android:preview` pins
+      the `preview` profile, and `mobile:build:android:preview:local` builds it on this machine
+      instead (`--local`, needs the Android SDK + JDK). Profiles are defined in `eas.json`.
       `pnpm mobile:db:generate`
       regenerates the Drizzle migrations after a schema edit; `pnpm mobile:api:generate` regenerates
       mobile's backend client from `apps/backend/openapi.json` (rebuild that first with
