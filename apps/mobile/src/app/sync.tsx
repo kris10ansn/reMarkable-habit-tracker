@@ -12,6 +12,7 @@ import { relativeTime } from "@/lib/relativeTime";
 import { useUpdateEffect } from "@/lib/useUpdateEffect";
 import {
     syncErrorReason,
+    useHasUnsyncedChanges,
     useSettings,
     useSync,
     useUpdateSettings,
@@ -34,7 +35,7 @@ export default function SyncScreen() {
     );
 
     useUpdateEffect(() => {
-        if (settings.data != undefined) {
+        if (settings.data !== undefined) {
             setSyncServerUrl(settings.data.syncServerUrl);
         }
     }, [settings.data]);
@@ -53,10 +54,12 @@ export default function SyncScreen() {
     };
 
     const lastSyncedAt = settings.data?.lastSyncedAt ?? null;
+    const unsyncedChanges = useHasUnsyncedChanges(lastSyncedAt);
 
     const state = syncState({
         savedServerUrl: settings.data?.syncServerUrl ?? "",
         lastSyncedAt,
+        hasUnsyncedChanges: unsyncedChanges.data ?? false,
         isSyncing: sync.isPending,
         failed: sync.isError,
     });
@@ -129,6 +132,7 @@ export default function SyncScreen() {
 function syncState(status: {
     savedServerUrl: string;
     lastSyncedAt: number | null;
+    hasUnsyncedChanges: boolean;
     isSyncing: boolean;
     failed: boolean;
 }): SyncState {
@@ -136,6 +140,7 @@ function syncState(status: {
     if (status.isSyncing) return "syncing";
     if (status.failed) return "error";
     if (status.lastSyncedAt === null) return "not-synced";
+    if (status.hasUnsyncedChanges) return "dirty";
 
     return "connected";
 }

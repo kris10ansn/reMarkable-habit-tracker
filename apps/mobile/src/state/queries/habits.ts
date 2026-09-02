@@ -5,7 +5,7 @@ import * as repo from "@/db/repo";
 import { moveByIndex } from "@/domain/roster";
 import type { Habit, Polarity } from "@/domain/types";
 
-import { habitsKey, streaksKey } from "./keys";
+import { habitsKey, streaksKey, unsyncedChangesKey } from "./keys";
 
 export function useHabits() {
     const db = useDatabase();
@@ -21,6 +21,7 @@ export function useCreateHabit() {
             repo.createHabit(db, variables.name, variables.polarity),
         onSettled: () => {
             queryClient.invalidateQueries({ queryKey: habitsKey });
+            queryClient.invalidateQueries({ queryKey: unsyncedChangesKey });
             queryClient.invalidateQueries({ queryKey: streaksKey });
         },
     });
@@ -45,6 +46,7 @@ export function useDeleteHabit() {
         },
         onSettled: () => {
             queryClient.invalidateQueries({ queryKey: habitsKey });
+            queryClient.invalidateQueries({ queryKey: unsyncedChangesKey });
             queryClient.invalidateQueries({ queryKey: streaksKey });
         },
     });
@@ -74,6 +76,7 @@ export function useUpdateHabit() {
         },
         onSettled: () => {
             queryClient.invalidateQueries({ queryKey: habitsKey });
+            queryClient.invalidateQueries({ queryKey: unsyncedChangesKey });
             queryClient.invalidateQueries({ queryKey: streaksKey });
         },
     });
@@ -99,6 +102,7 @@ export function useReorderHabit() {
         },
         onSettled: () => {
             queryClient.invalidateQueries({ queryKey: habitsKey });
+            queryClient.invalidateQueries({ queryKey: unsyncedChangesKey });
         },
     });
 }

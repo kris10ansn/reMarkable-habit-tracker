@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { ApiError, NetworkError } from "@/api/client";
 import { postApiSync } from "@/api/gen";
@@ -8,7 +8,26 @@ import { updateSettings } from "@/db/repo/settings";
 import { monthKey } from "@/domain/dates";
 
 import { useSettings } from "@/state/queries/settings";
-import { entriesKey, habitsKey, settingsKey, streaksKey } from "./keys";
+import {
+    entriesKey,
+    habitsKey,
+    settingsKey,
+    streaksKey,
+    unsyncedChangesKey,
+} from "./keys";
+
+export function useHasUnsyncedChanges(lastSyncedAt: number | null) {
+    const db = useDatabase();
+
+    return useQuery({
+        queryKey: [...unsyncedChangesKey, lastSyncedAt],
+        queryFn: () =>
+            lastSyncedAt === null
+                ? false
+                : repo.hasUnsyncedChanges(db, lastSyncedAt),
+        staleTime: Infinity,
+    });
+}
 
 /**
  * One sync round-trip: gather local state, POST it, overwrite local with the authoritative result.

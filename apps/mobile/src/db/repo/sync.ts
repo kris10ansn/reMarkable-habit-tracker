@@ -14,6 +14,28 @@ import { entries, habits } from "../schema";
 // Rows are the wire types verbatim (src/api/contract.ts asserts it), so nothing here maps or casts;
 // what this module actually owns is *which* rows go, and how the response lands atomically.
 
+// A lightweight status check, not a content diff: stop at the first row edited after the last
+// successful sync. This intentionally uses the same edit-time cursor as incremental sync.
+export async function hasUnsyncedChanges(
+    db: Database,
+    lastSyncedAt: number,
+): Promise<boolean> {
+    const [editedHabit] = await db
+        .select({ id: habits.id })
+        .from(habits)
+        .where(gt(habits.editedAt, lastSyncedAt))
+        .limit(1);
+    if (editedHabit) return true;
+
+    const [editedEntry] = await db
+        .select({ habitId: entries.habitId })
+        .from(entries)
+        .where(gt(entries.editedAt, lastSyncedAt))
+        .limit(1);
+
+    return editedEntry !== undefined;
+}
+
 /**
  * Months to submit. The response is authoritative only for the months the request names, so this
  * decides what sync can reconcile at all.

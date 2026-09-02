@@ -28,4 +28,4 @@ export {
 export { entriesKey, habitsKey } from "./keys";
 export { useSettings, useUpdateSettings } from "./settings";
 export { useStreaks } from "./streaks";
-export { syncErrorReason, useSync } from "./sync";
+export { syncErrorReason, useHasUnsyncedChanges, useSync } from "./sync";

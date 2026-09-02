@@ -6,7 +6,7 @@ import * as repo from "@/db/repo";
 import { nextAction, type MarkAction } from "@/domain/marks";
 import type { Entry, Polarity } from "@/domain/types";
 
-import { entriesKey, streaksKey } from "./keys";
+import { entriesKey, streaksKey, unsyncedChangesKey } from "./keys";
 
 export function useMonthEntries(monthKey: string) {
     const db = useDatabase();
@@ -82,6 +82,7 @@ export function useToggleEntry(monthKey: string): ToggleFn {
         },
         onSettled: () => {
             queryClient.invalidateQueries({ queryKey: key });
+            queryClient.invalidateQueries({ queryKey: unsyncedChangesKey });
             queryClient.invalidateQueries({ queryKey: streaksKey });
         },
     });

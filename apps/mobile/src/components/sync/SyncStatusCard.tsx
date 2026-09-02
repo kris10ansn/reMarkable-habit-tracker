@@ -7,6 +7,7 @@ import { twMerge } from "tailwind-merge";
 
 export type SyncState =
     | "connected"
+    | "dirty"
     | "standalone"
     | "syncing"
     | "error"
@@ -36,7 +37,16 @@ const stateViews: Record<SyncState, StateView> = {
         medallionClass: "bg-done-soft",
         iconClass: "text-done",
         dotClass: "bg-done",
-        label: "Up to date",
+        label: "No unsynced changes",
+        detail: ({ lastSynced }) => `Last synced ${lastSynced}`,
+        action: { label: "Sync now", enabled: true },
+    },
+    dirty: {
+        icon: "cloud-sync",
+        medallionClass: "bg-yellow-50",
+        iconClass: "text-yellow-500",
+        dotClass: "bg-yellow-500",
+        label: "Changes not synced",
         detail: ({ lastSynced }) => `Last synced ${lastSynced}`,
         action: { label: "Sync now", enabled: true },
     },
@@ -72,7 +82,7 @@ const stateViews: Record<SyncState, StateView> = {
         medallionClass: "bg-yellow-50",
         iconClass: "text-yellow-500",
         dotClass: "bg-yellow-500",
-        label: "Not up to date",
+        label: "Not synced yet",
         detail: ({ lastSynced }) => `Last synced ${lastSynced}`,
         action: { label: "Sync now", enabled: true, busy: false },
     },
